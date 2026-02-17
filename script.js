@@ -202,6 +202,17 @@ filterBtns.forEach(btn => {
 modalOverlay.addEventListener('click', closeFileViewer);
 modalClose.addEventListener('click', closeFileViewer);
 
+// Navigation
+showSignupBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    showSignup();
+});
+
+showLoginBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    showLogin();
+});
+
 // Comments
 commentForm.addEventListener('submit', handleAddComment);
 
