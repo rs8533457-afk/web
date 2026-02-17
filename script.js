@@ -43,11 +43,52 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeEventListeners();
 });
 
-// ... (keep authentication code) ...
+// Check authentication
+function checkAuth() {
+    const user = localStorage.getItem('currentUser');
+    if (user) {
+        currentUser = JSON.parse(user);
+        showDashboard();
+    } else {
+        showLogin();
+    }
+}
 
 // Initialize event listeners
 function initializeEventListeners() {
-    // ... (keep existing listeners) ...
+    // Auth navigation
+    showSignupBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        showSignup();
+    });
+
+    showLoginBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        showLogin();
+    });
+
+    // Forms
+    loginForm.addEventListener('submit', handleLogin);
+    signupForm.addEventListener('submit', handleSignup);
+    logoutBtn.addEventListener('click', handleLogout);
+
+    // Upload
+    uploadArea.addEventListener('dragover', handleDragOver);
+    uploadArea.addEventListener('dragleave', handleDragLeave);
+    uploadArea.addEventListener('drop', handleDrop);
+    uploadArea.addEventListener('click', () => fileInput.click());
+
+    browseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', handleFileSelect);
+
+    // Filters
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', handleFilter);
+    });
 
     // File Viewer modal
     modalOverlay.addEventListener('click', closeFileViewer);
@@ -56,8 +97,6 @@ function initializeEventListeners() {
     // Comments
     commentForm.addEventListener('submit', handleAddComment);
 }
-
-// ... (keep auth functions) ...
 
 // Updated createFileCard to open file viewer
 function createFileCard(file, index) {
