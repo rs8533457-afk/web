@@ -233,22 +233,43 @@ function handleFiles(files) {
 }
 
 function saveFile(file) {
-    const fileData = {
-        id: Date.now() + Math.random(),
-        userId: currentUser.id,
-        name: file.name,
-        size: formatFileSize(file.size),
-        type: getFileType(file.type, file.name),
-        uploadedAt: new Date().toISOString(),
-        thumbnail: getFileThumbnail(file.type)
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+        const fileData = {
+            id: Date.now() + Math.random(),
+            userId: currentUser.id,
+            name: file.name,
+            size: formatFileSize(file.size),
+            type: getFileType(file.type, file.name),
+            uploadedAt: new Date().toISOString(),
+            thumbnail: getFileThumbnail(file.type),
+            data: e.target.result, // Store the actual file data as base64
+            mimeType: file.type
+        };
+
+        userFiles.push(fileData);
+
+        // Save to localStorage
+        const allFiles = JSON.parse(localStorage.getItem('files') || '[]');
+        allFiles.push(fileData);
+
+        try {
+            localStorage.setItem('files', JSON.stringify(allFiles));
+        } catch (e) {
+            // If storage quota exceeded, show warning
+            if (e.name === 'QuotaExceededError') {
+                showNotification('Storage limit reached! Large files may not be stored.', 'error');
+            }
+        }
     };
 
-    userFiles.push(fileData);
+    reader.onerror = function () {
+        showNotification('Error reading file: ' + file.name, 'error');
+    };
 
-    // Save to localStorage
-    const allFiles = JSON.parse(localStorage.getItem('files') || '[]');
-    allFiles.push(fileData);
-    localStorage.setItem('files', JSON.stringify(allFiles));
+    // Read file as data URL (base64)
+    reader.readAsDataURL(file);
 }
 
 function loadUserFiles() {
@@ -366,7 +387,23 @@ function handleFilter(e) {
 }
 
 // File actions
+// File actions
 function downloadFile(fileId) {
+    const file = userFiles.find(f => f.id == fileId);
+    if (!file) return;
+
+    if (!file.data) {
+        showNotification('File data not found (older files cannot be downloaded)', 'error');
+        return;
+    }
+
+    const link = document.createElement('a');
+    link.href = file.data;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
     showNotification('Download started', 'success');
 }
 
@@ -390,18 +427,25 @@ function playVideo(fileId) {
     const file = userFiles.find(f => f.id == fileId);
     if (!file || file.type !== 'video') return;
 
-    // For demo purposes, show placeholder message
-    // In a real app, you would load the actual video file
+    if (!file.data) {
+        showNotification('Video data not found (older files cannot be played)', 'error');
+        return;
+    }
+
     videoTitle.textContent = file.name;
     videoSize.textContent = `Size: ${file.size}`;
+
+    // Set video source to the base64 data
+    videoSource.src = file.data;
+    videoPlayer.load();
 
     // Show modal
     videoModal.classList.remove('hidden');
 
-    // Pause any playing video
-    videoPlayer.pause();
-
-    showNotification('Video playback ready! (Demo mode - upload actual video files for playback)', 'info');
+    // Play video
+    videoPlayer.play().catch(e => {
+        console.error('Auto-play failed:', e);
+    });
 }
 
 function closeVideoModal() {
