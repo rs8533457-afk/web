@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FileVault - Secure File Upload Platform</title>
+    <title>Files - Secure File Upload Platform</title>
     <meta name="description" content="Upload and manage your files securely with our beautiful, modern platform">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -48,7 +48,56 @@
 
                     <div class="form-group">
                         <label for="loginPassword">Password</label>
-                        <input type="password" id="loginPassword" placeholder="••••••••" required>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="loginPassword" placeholder="••••••••" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('loginPassword')">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg" class="eye-icon">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg" class="eye-off-icon hidden">
+                                    <path
+                                        d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07-2.33-2.33M1 1l22 22"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ... inside signup form ... -->
+
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="signupPassword" placeholder="••••••••" required minlength="8">
+                            <button type="button" class="password-toggle" onclick="togglePassword('signupPassword')">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg" class="eye-icon">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg" class="eye-off-icon hidden">
+                                    <path
+                                        d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07-2.33-2.33M1 1l22 22"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="password-strength hidden" id="passwordStrength">
+                            <div class="strength-bar">
+                                <div class="strength-fill" id="strengthFill"></div>
+                            </div>
+                            <p class="strength-text" id="strengthText">Weak password</p>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn-primary">
@@ -209,8 +258,8 @@
         </main>
     </div>
 
-    <!-- Video Player Modal -->
-    <div class="modal hidden" id="videoModal">
+    <!-- File Viewer Modal (Generic for all files) -->
+    <div class="modal hidden" id="fileViewerModal">
         <div class="modal-overlay" id="modalOverlay"></div>
         <div class="modal-content">
             <button class="modal-close" id="modalClose">
@@ -218,14 +267,37 @@
                     <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                 </svg>
             </button>
-            <div class="video-player">
-                <video id="videoPlayer" controls>
-                    <source id="videoSource" src="" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-                <div class="video-info">
-                    <h3 id="videoTitle">Video Title</h3>
-                    <p id="videoSize">Size: 0 MB</p>
+
+            <div class="file-viewer-layout">
+                <div class="preview-container" id="previewContainer">
+                    <!-- Dynamic content will be injected here -->
+                    <video id="videoPlayer" controls class="hidden"></video>
+                    <img id="imagePreview" src="" alt="Preview" class="hidden">
+                    <div id="iconPreview" class="hidden"></div>
+                </div>
+
+                <div class="file-details-panel">
+                    <div class="file-header">
+                        <h3 id="modalFileName">File Name</h3>
+                        <p id="modalFileSize">Size: 0 MB</p>
+                    </div>
+
+                    <div class="comments-section">
+                        <h4>Comments</h4>
+                        <div class="comments-list" id="commentsList">
+                            <!-- Comments injected here -->
+                        </div>
+                        <form class="comment-form" id="commentForm">
+                            <input type="text" id="commentInput" placeholder="Write a comment..." required>
+                            <button type="submit" class="btn-send">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

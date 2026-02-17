@@ -21,15 +21,21 @@ const progressText = document.getElementById('progressText');
 const filterBtns = document.querySelectorAll('.filter-btn');
 const userName = document.getElementById('userName');
 
-// Video player elements
-const videoModal = document.getElementById('videoModal');
+// File Viewer Elements
+const fileViewerModal = document.getElementById('fileViewerModal');
 const modalOverlay = document.getElementById('modalOverlay');
 const modalClose = document.getElementById('modalClose');
+const previewContainer = document.getElementById('previewContainer');
 const videoPlayer = document.getElementById('videoPlayer');
-const videoSource = document.getElementById('videoSource');
-const videoTitle = document.getElementById('videoTitle');
-const videoSize = document.getElementById('videoSize');
+const imagePreview = document.getElementById('imagePreview');
+const iconPreview = document.getElementById('iconPreview');
+const modalFileName = document.getElementById('modalFileName');
+const modalFileSize = document.getElementById('modalFileSize');
+const commentsList = document.getElementById('commentsList');
+const commentForm = document.getElementById('commentForm');
+const commentInput = document.getElementById('commentInput');
 
+let currentFileId = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -37,57 +43,199 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeEventListeners();
 });
 
-// Check authentication
-function checkAuth() {
-    const user = localStorage.getItem('currentUser');
-    if (user) {
-        currentUser = JSON.parse(user);
-        showDashboard();
-    } else {
-        showLogin();
-    }
-}
+// ... (keep authentication code) ...
 
 // Initialize event listeners
 function initializeEventListeners() {
-    // Auth navigation
-    showSignupBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        showSignup();
-    });
+    // ... (keep existing listeners) ...
 
-    showLoginBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        showLogin();
-    });
+    // File Viewer modal
+    modalOverlay.addEventListener('click', closeFileViewer);
+    modalClose.addEventListener('click', closeFileViewer);
 
-    // Forms
-    loginForm.addEventListener('submit', handleLogin);
-    signupForm.addEventListener('submit', handleSignup);
-    logoutBtn.addEventListener('click', handleLogout);
-
-    // Upload
-    uploadArea.addEventListener('dragover', handleDragOver);
-    uploadArea.addEventListener('dragleave', handleDragLeave);
-    uploadArea.addEventListener('drop', handleDrop);
-    uploadArea.addEventListener('click', () => fileInput.click());
-
-    browseBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        fileInput.click();
-    });
-
-    fileInput.addEventListener('change', handleFileSelect);
-
-    // Filters
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', handleFilter);
-    });
-
-    // Video modal
-    modalOverlay.addEventListener('click', closeVideoModal);
-    modalClose.addEventListener('click', closeVideoModal);
+    // Comments
+    commentForm.addEventListener('submit', handleAddComment);
 }
+
+// ... (keep auth functions) ...
+
+// Updated createFileCard to open file viewer
+function createFileCard(file, index) {
+    const card = document.createElement('div');
+    card.className = 'file-card';
+    card.style.animationDelay = `${index * 0.1}s`;
+
+    const typeLabels = {
+        'video': 'Video',
+        'image': 'Image',
+        'document': 'Document',
+        'file': 'File'
+    };
+
+    const typeColors = {
+        'video': '#8b5cf6',
+        'image': '#06b6d4',
+        'document': '#f59e0b',
+        'file': '#6366f1'
+    };
+
+    // Add click handler to preview for all files
+    const previewClass = file.type === 'video' ? 'file-preview video-preview' : 'file-preview';
+
+    card.innerHTML = `
+        <div class="${previewClass}" onclick="openFileViewer('${file.id}')">${file.thumbnail}</div>
+        <div class="file-info">
+            <span class="file-type" style="background: ${typeColors[file.type]}20; color: ${typeColors[file.type]}">${typeLabels[file.type]}</span>
+            <p class="file-name" onclick="openFileViewer('${file.id}')" style="cursor: pointer">${file.name}</p>
+            <div class="file-meta">
+                <span>${file.size}</span>
+                <div class="file-actions">
+                    <button class="btn-icon" onclick="downloadFile('${file.id}')" title="Download">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <button class="btn-icon delete" onclick="deleteFile('${file.id}')" title="Delete">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    return card;
+}
+
+// ... (keep handleFilter, downloadFile, deleteFile) ...
+
+// File Viewer Functions
+function openFileViewer(fileId) {
+    const file = userFiles.find(f => f.id == fileId);
+    if (!file) return;
+
+    currentFileId = fileId;
+    modalFileName.textContent = file.name;
+    modalFileSize.textContent = file.size;
+
+    // Reset previews
+    videoPlayer.classList.add('hidden');
+    videoPlayer.pause();
+    imagePreview.classList.add('hidden');
+    iconPreview.classList.add('hidden');
+
+    // Show appropriate preview
+    if (file.type === 'video' && file.data) {
+        videoPlayer.src = file.data;
+        videoPlayer.classList.remove('hidden');
+        // Auto-play videos
+        videoPlayer.play().catch(e => console.log('Autoplay prevented'));
+    } else if (file.type === 'image' && file.data) {
+        imagePreview.src = file.data;
+        imagePreview.classList.remove('hidden');
+    } else {
+        iconPreview.innerHTML = file.thumbnail;
+        iconPreview.classList.remove('hidden');
+        // Set color based on type
+        iconPreview.style.color = '#a1a1aa';
+    }
+
+    // Load comments
+    loadComments(fileId);
+
+    // Show modal
+    fileViewerModal.classList.remove('hidden');
+}
+
+function closeFileViewer() {
+    fileViewerModal.classList.add('hidden');
+    videoPlayer.pause();
+    videoPlayer.src = '';
+    currentFileId = null;
+}
+
+// Commenting System
+function loadComments(fileId) {
+    const allComments = JSON.parse(localStorage.getItem('comments') || '[]');
+    const fileComments = allComments.filter(c => c.fileId == fileId);
+
+    commentsList.innerHTML = '';
+
+    if (fileComments.length === 0) {
+        commentsList.innerHTML = '<p class="empty-state" style="font-size: 14px; padding: 20px;">No comments yet. Be the first!</p>';
+        return;
+    }
+
+    fileComments.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+    fileComments.forEach(comment => {
+        const commentEl = document.createElement('div');
+        commentEl.className = 'comment-item';
+
+        // Check if current user can delete (owner of comment or owner of file)
+        const file = userFiles.find(f => f.id == fileId);
+        const canDelete = comment.userId === currentUser.id || (file && file.userId === currentUser.id);
+        const deleteBtn = canDelete ? `<span class="comment-delete" onclick="deleteComment(${comment.id})">Delete</span>` : '';
+
+        // Initial for avatar
+        const initial = comment.userName.charAt(0).toUpperCase();
+
+        // Format date
+        const date = new Date(comment.createdAt).toLocaleDateString();
+
+        commentEl.innerHTML = `
+            <div class="comment-avatar">${initial}</div>
+            <div class="comment-content">
+                <div class="comment-header">
+                    <span class="comment-name">${comment.userName}</span>
+                    <span class="comment-date">${date} ${deleteBtn}</span>
+                </div>
+                <div class="comment-text">${comment.text}</div>
+            </div>
+        `;
+
+        commentsList.appendChild(commentEl);
+    });
+
+    // Scroll to bottom
+    commentsList.scrollTop = commentsList.scrollHeight;
+}
+
+function handleAddComment(e) {
+    e.preventDefault();
+    if (!currentFileId) return;
+
+    const text = commentInput.value.trim();
+    if (!text) return;
+
+    const newComment = {
+        id: Date.now(),
+        fileId: currentFileId,
+        userId: currentUser.id,
+        userName: currentUser.name,
+        text: text,
+        createdAt: new Date().toISOString()
+    };
+
+    const allComments = JSON.parse(localStorage.getItem('comments') || '[]');
+    allComments.push(newComment);
+    localStorage.setItem('comments', JSON.stringify(allComments));
+
+    commentInput.value = '';
+    loadComments(currentFileId);
+}
+
+function deleteComment(commentId) {
+    if (!confirm('Delete this comment?')) return;
+
+    let allComments = JSON.parse(localStorage.getItem('comments') || '[]');
+    allComments = allComments.filter(c => c.id != commentId);
+    localStorage.setItem('comments', JSON.stringify(allComments));
+
+    loadComments(currentFileId);
+}
+
 
 // Auth functions
 function showLogin() {
@@ -112,7 +260,81 @@ function showDashboard() {
     renderFiles();
 }
 
-function handleLogin(e) {
+// Security Functions
+async function hashPassword(password, salt) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password + salt);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function generateSalt() {
+    return Array.from(crypto.getRandomValues(new Uint8Array(16)))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function checkPasswordStrength(password) {
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
+    if (password.match(/\d/)) strength++;
+    if (password.match(/[^a-zA-Z\d]/)) strength++;
+    return strength;
+}
+
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const wrapper = input.parentElement;
+    const eyeIcon = wrapper.querySelector('.eye-icon');
+    const eyeOffIcon = wrapper.querySelector('.eye-off-icon');
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        eyeIcon.classList.add('hidden');
+        eyeOffIcon.classList.remove('hidden');
+    } else {
+        input.type = 'password';
+        eyeIcon.classList.remove('hidden');
+        eyeOffIcon.classList.add('hidden');
+    }
+}
+
+// Password strength listener
+document.getElementById('signupPassword')?.addEventListener('input', function (e) {
+    const strength = checkPasswordStrength(e.target.value);
+    const fill = document.getElementById('strengthFill');
+    const text = document.getElementById('strengthText');
+
+    // Reset classes
+    fill.className = 'strength-fill';
+
+    switch (strength) {
+        case 0:
+        case 1:
+            fill.style.width = '25%';
+            fill.style.backgroundColor = '#ef4444';
+            text.textContent = 'Weak';
+            break;
+        case 2:
+            fill.style.width = '50%';
+            fill.style.backgroundColor = '#f59e0b';
+            text.textContent = 'Fair';
+            break;
+        case 3:
+            fill.style.width = '75%';
+            fill.style.backgroundColor = '#3b82f6';
+            text.textContent = 'Good';
+            break;
+        case 4:
+            fill.style.width = '100%';
+            fill.style.backgroundColor = '#10b981';
+            text.textContent = 'Strong';
+            break;
+    }
+});
+
+async function handleLogin(e) {
     e.preventDefault();
 
     const email = document.getElementById('loginEmail').value;
@@ -120,25 +342,50 @@ function handleLogin(e) {
 
     // Get users from localStorage
     const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find(u => u.email === email && u.password === password);
+    const user = users.find(u => u.email === email);
 
     if (user) {
-        currentUser = user;
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        showNotification('Welcome back!', 'success');
-        showDashboard();
-        loginForm.reset();
-    } else {
-        showNotification('Invalid email or password', 'error');
+        // Migration check: If user has no salt, it's an old insecure account
+        if (!user.salt) {
+            showNotification('Security update: Please create a new account', 'error');
+            // Optional: Auto-delete insecure user
+            // const newUsers = users.filter(u => u.email !== email);
+            // localStorage.setItem('users', JSON.stringify(newUsers));
+            return;
+        }
+
+        const hash = await hashPassword(password, user.salt);
+
+        if (hash === user.password) {
+            currentUser = user;
+            // Don't store sensitivity data in session
+            const sessionUser = { ...user };
+            delete sessionUser.password;
+            delete sessionUser.salt;
+
+            localStorage.setItem('currentUser', JSON.stringify(sessionUser));
+            showNotification('Welcome back!', 'success');
+            showDashboard();
+            loginForm.reset();
+            return;
+        }
     }
+
+    showNotification('Invalid email or password', 'error');
 }
 
-function handleSignup(e) {
+async function handleSignup(e) {
     e.preventDefault();
 
     const name = document.getElementById('signupName').value;
     const email = document.getElementById('signupEmail').value;
     const password = document.getElementById('signupPassword').value;
+
+    // Validate password
+    if (checkPasswordStrength(password) < 2) {
+        showNotification('Password is too weak. Include mixed case/numbers.', 'error');
+        return;
+    }
 
     // Get existing users
     const users = JSON.parse(localStorage.getItem('users') || '[]');
@@ -149,20 +396,29 @@ function handleSignup(e) {
         return;
     }
 
+    const salt = generateSalt();
+    const hashedPassword = await hashPassword(password, salt);
+
     // Create new user
     const newUser = {
         id: Date.now(),
         name,
         email,
-        password,
+        password: hashedPassword,
+        salt: salt,
         createdAt: new Date().toISOString()
     };
 
     users.push(newUser);
     localStorage.setItem('users', JSON.stringify(users));
 
-    currentUser = newUser;
-    localStorage.setItem('currentUser', JSON.stringify(newUser));
+    // Session storage (safe version)
+    const sessionUser = { ...newUser };
+    delete sessionUser.password;
+    delete sessionUser.salt;
+
+    currentUser = sessionUser;
+    localStorage.setItem('currentUser', JSON.stringify(sessionUser));
 
     showNotification('Account created successfully!', 'success');
     showDashboard();
@@ -331,52 +587,7 @@ function renderFiles(filter = 'all') {
     });
 }
 
-function createFileCard(file, index) {
-    const card = document.createElement('div');
-    card.className = 'file-card';
-    card.style.animationDelay = `${index * 0.1}s`;
 
-    const typeLabels = {
-        'video': 'Video',
-        'image': 'Image',
-        'document': 'Document',
-        'file': 'File'
-    };
-
-    const typeColors = {
-        'video': '#8b5cf6',
-        'image': '#06b6d4',
-        'document': '#f59e0b',
-        'file': '#6366f1'
-    };
-
-    // Add video-preview class and click handler for video files
-    const previewClass = file.type === 'video' ? 'file-preview video-preview' : 'file-preview';
-    const playButton = file.type === 'video' ? `onclick="playVideo('${file.id}')"` : '';
-
-    card.innerHTML = `
-        <div class="${previewClass}" ${playButton}>${file.thumbnail}</div>
-        <span class="file-type" style="background: ${typeColors[file.type]}20; color: ${typeColors[file.type]}">${typeLabels[file.type]}</span>
-        <p class="file-name">${file.name}</p>
-        <div class="file-meta">
-            <span>${file.size}</span>
-            <div class="file-actions">
-                <button class="btn-icon" onclick="downloadFile('${file.id}')" title="Download">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </button>
-                <button class="btn-icon delete" onclick="deleteFile('${file.id}')" title="Delete">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                </button>
-            </div>
-        </div>
-    `;
-
-    return card;
-}
 
 function handleFilter(e) {
     filterBtns.forEach(btn => btn.classList.remove('active'));
@@ -423,36 +634,7 @@ function deleteFile(fileId) {
 }
 
 // Video player functions
-function playVideo(fileId) {
-    const file = userFiles.find(f => f.id == fileId);
-    if (!file || file.type !== 'video') return;
 
-    if (!file.data) {
-        showNotification('Video data not found (older files cannot be played)', 'error');
-        return;
-    }
-
-    videoTitle.textContent = file.name;
-    videoSize.textContent = `Size: ${file.size}`;
-
-    // Set video source to the base64 data
-    videoSource.src = file.data;
-    videoPlayer.load();
-
-    // Show modal
-    videoModal.classList.remove('hidden');
-
-    // Play video
-    videoPlayer.play().catch(e => {
-        console.error('Auto-play failed:', e);
-    });
-}
-
-function closeVideoModal() {
-    videoModal.classList.add('hidden');
-    videoPlayer.pause();
-    videoSource.src = '';
-}
 
 // Notification system
 function showNotification(message, type = 'info') {

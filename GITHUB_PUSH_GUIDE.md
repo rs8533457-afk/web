@@ -45,7 +45,7 @@ git add .
 
 ### 4. Create First Commit
 ```bash
-git commit -m "Initial commit: FileVault - Beautiful file upload platform with authentication"
+git commit -m "Initial commit: Files - Beautiful file upload platform with authentication"
 ```
 
 ### 5. Add Your GitHub Repository
