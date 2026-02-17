@@ -345,30 +345,47 @@ async function handleLogin(e) {
     const user = users.find(u => u.email === email);
 
     if (user) {
-        // Migration check: If user has no salt, it's an old insecure account
+        // Check legacy plain-text password (Migration)
         if (!user.salt) {
-            showNotification('Security update: Please create a new account', 'error');
-            // Optional: Auto-delete insecure user
-            // const newUsers = users.filter(u => u.email !== email);
-            // localStorage.setItem('users', JSON.stringify(newUsers));
-            return;
+            if (user.password === password) {
+                // Upgrade to secure account
+                const salt = generateSalt();
+                const hashedPassword = await hashPassword(password, salt);
+
+                // Update user object
+                user.salt = salt;
+                user.password = hashedPassword;
+
+                // Save updated user to localStorage
+                localStorage.setItem('users', JSON.stringify(users));
+
+                showNotification('Security upgrade successful!', 'success');
+            } else {
+                showNotification('Invalid email or password', 'error');
+                return;
+            }
+        } else {
+            // Check hashed password
+            const hash = await hashPassword(password, user.salt);
+            if (hash !== user.password) {
+                showNotification('Invalid email or password', 'error');
+                return;
+            }
         }
 
-        const hash = await hashPassword(password, user.salt);
+        // Login successful
+        currentUser = user;
 
-        if (hash === user.password) {
-            currentUser = user;
-            // Don't store sensitivity data in session
-            const sessionUser = { ...user };
-            delete sessionUser.password;
-            delete sessionUser.salt;
+        // Session storage (safe version)
+        const sessionUser = { ...user };
+        delete sessionUser.password;
+        delete sessionUser.salt;
 
-            localStorage.setItem('currentUser', JSON.stringify(sessionUser));
-            showNotification('Welcome back!', 'success');
-            showDashboard();
-            loginForm.reset();
-            return;
-        }
+        localStorage.setItem('currentUser', JSON.stringify(sessionUser));
+        showNotification('Welcome back!', 'success');
+        showDashboard();
+        loginForm.reset();
+        return;
     }
 
     showNotification('Invalid email or password', 'error');
