@@ -260,28 +260,8 @@ function showDashboard() {
     renderFiles();
 }
 
-// Security Functions
-async function hashPassword(password, salt) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password + salt);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
 
-function generateSalt() {
-    return Array.from(crypto.getRandomValues(new Uint8Array(16)))
-        .map(b => b.toString(16).padStart(2, '0')).join('');
-}
 
-function checkPasswordStrength(password) {
-    let strength = 0;
-    if (password.length >= 8) strength++;
-    if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
-    if (password.match(/\d/)) strength++;
-    if (password.match(/[^a-zA-Z\d]/)) strength++;
-    return strength;
-}
 
 function togglePassword(inputId) {
     const input = document.getElementById(inputId);
@@ -300,41 +280,7 @@ function togglePassword(inputId) {
     }
 }
 
-// Password strength listener
-document.getElementById('signupPassword')?.addEventListener('input', function (e) {
-    const strength = checkPasswordStrength(e.target.value);
-    const fill = document.getElementById('strengthFill');
-    const text = document.getElementById('strengthText');
-
-    // Reset classes
-    fill.className = 'strength-fill';
-
-    switch (strength) {
-        case 0:
-        case 1:
-            fill.style.width = '25%';
-            fill.style.backgroundColor = '#ef4444';
-            text.textContent = 'Weak';
-            break;
-        case 2:
-            fill.style.width = '50%';
-            fill.style.backgroundColor = '#f59e0b';
-            text.textContent = 'Fair';
-            break;
-        case 3:
-            fill.style.width = '75%';
-            fill.style.backgroundColor = '#3b82f6';
-            text.textContent = 'Good';
-            break;
-        case 4:
-            fill.style.width = '100%';
-            fill.style.backgroundColor = '#10b981';
-            text.textContent = 'Strong';
-            break;
-    }
-});
-
-async function handleLogin(e) {
+function handleLogin(e) {
     e.preventDefault();
 
     const email = document.getElementById('loginEmail').value;
@@ -342,67 +288,25 @@ async function handleLogin(e) {
 
     // Get users from localStorage
     const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find(u => u.email === email);
+    const user = users.find(u => u.email === email && u.password === password);
 
     if (user) {
-        // Check legacy plain-text password (Migration)
-        if (!user.salt) {
-            if (user.password === password) {
-                // Upgrade to secure account
-                const salt = generateSalt();
-                const hashedPassword = await hashPassword(password, salt);
-
-                // Update user object
-                user.salt = salt;
-                user.password = hashedPassword;
-
-                // Save updated user to localStorage
-                localStorage.setItem('users', JSON.stringify(users));
-
-                showNotification('Security upgrade successful!', 'success');
-            } else {
-                showNotification('Invalid email or password', 'error');
-                return;
-            }
-        } else {
-            // Check hashed password
-            const hash = await hashPassword(password, user.salt);
-            if (hash !== user.password) {
-                showNotification('Invalid email or password', 'error');
-                return;
-            }
-        }
-
-        // Login successful
         currentUser = user;
-
-        // Session storage (safe version)
-        const sessionUser = { ...user };
-        delete sessionUser.password;
-        delete sessionUser.salt;
-
-        localStorage.setItem('currentUser', JSON.stringify(sessionUser));
+        localStorage.setItem('currentUser', JSON.stringify(user));
         showNotification('Welcome back!', 'success');
         showDashboard();
         loginForm.reset();
-        return;
+    } else {
+        showNotification('Invalid email or password', 'error');
     }
-
-    showNotification('Invalid email or password', 'error');
 }
 
-async function handleSignup(e) {
+function handleSignup(e) {
     e.preventDefault();
 
     const name = document.getElementById('signupName').value;
     const email = document.getElementById('signupEmail').value;
     const password = document.getElementById('signupPassword').value;
-
-    // Validate password
-    if (checkPasswordStrength(password) < 2) {
-        showNotification('Password is too weak. Include mixed case/numbers.', 'error');
-        return;
-    }
 
     // Get existing users
     const users = JSON.parse(localStorage.getItem('users') || '[]');
@@ -413,29 +317,20 @@ async function handleSignup(e) {
         return;
     }
 
-    const salt = generateSalt();
-    const hashedPassword = await hashPassword(password, salt);
-
     // Create new user
     const newUser = {
         id: Date.now(),
         name,
         email,
-        password: hashedPassword,
-        salt: salt,
+        password,
         createdAt: new Date().toISOString()
     };
 
     users.push(newUser);
     localStorage.setItem('users', JSON.stringify(users));
 
-    // Session storage (safe version)
-    const sessionUser = { ...newUser };
-    delete sessionUser.password;
-    delete sessionUser.salt;
-
-    currentUser = sessionUser;
-    localStorage.setItem('currentUser', JSON.stringify(sessionUser));
+    currentUser = newUser;
+    localStorage.setItem('currentUser', JSON.stringify(newUser));
 
     showNotification('Account created successfully!', 'success');
     showDashboard();

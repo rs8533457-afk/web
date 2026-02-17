@@ -236,6 +236,8 @@ body {
 
 .password-strength {
     margin-top: 8px;
+    display: none;
+    /* Hidden for non-secure mode */
 }
 
 .strength-bar {
