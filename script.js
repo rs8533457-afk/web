@@ -123,28 +123,15 @@ const filesAppDB = {
 async function loadUserFiles() {
     try {
         const allFiles = await filesAppDB.getAll('files');
-        console.log('All files in DB:', allFiles); // Debug
 
         if (currentUser) {
             userFiles = allFiles.filter(f => f.userId === currentUser.id);
-            console.log('User files:', userFiles); // Debug
-
-            if (userFiles.length > 0) {
-                showNotification(`Loaded ${userFiles.length} files from database`, 'success');
-            } else {
-                showNotification('No files found in database for this user', 'info');
-            }
         } else {
             console.warn('No current user in loadUserFiles');
             userFiles = [];
         }
 
         renderFiles();
-
-        // Debug notification
-        if (userFiles.length === 0 && allFiles.length > 0) {
-            console.log('Files exist but differ from current user');
-        }
     } catch (e) {
         console.error('Error loading files:', e);
         showNotification('Failed to load files: ' + e.message, 'error');
