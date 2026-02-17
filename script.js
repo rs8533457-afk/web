@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         await filesAppDB.init();
         await checkAuth(); // Make checkAuth async or handle promise
-        initializeEventListeners();
+
     } catch (error) {
         console.error('Failed to initialize app:', error);
         showNotification('Failed to initialize storage', 'error');
