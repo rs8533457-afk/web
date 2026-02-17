@@ -21,6 +21,16 @@ const progressText = document.getElementById('progressText');
 const filterBtns = document.querySelectorAll('.filter-btn');
 const userName = document.getElementById('userName');
 
+// Video player elements
+const videoModal = document.getElementById('videoModal');
+const modalOverlay = document.getElementById('modalOverlay');
+const modalClose = document.getElementById('modalClose');
+const videoPlayer = document.getElementById('videoPlayer');
+const videoSource = document.getElementById('videoSource');
+const videoTitle = document.getElementById('videoTitle');
+const videoSize = document.getElementById('videoSize');
+
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
@@ -73,6 +83,10 @@ function initializeEventListeners() {
     filterBtns.forEach(btn => {
         btn.addEventListener('click', handleFilter);
     });
+
+    // Video modal
+    modalOverlay.addEventListener('click', closeVideoModal);
+    modalClose.addEventListener('click', closeVideoModal);
 }
 
 // Auth functions
@@ -315,8 +329,12 @@ function createFileCard(file, index) {
         'file': '#6366f1'
     };
 
+    // Add video-preview class and click handler for video files
+    const previewClass = file.type === 'video' ? 'file-preview video-preview' : 'file-preview';
+    const playButton = file.type === 'video' ? `onclick="playVideo('${file.id}')"` : '';
+
     card.innerHTML = `
-        <div class="file-preview">${file.thumbnail}</div>
+        <div class="${previewClass}" ${playButton}>${file.thumbnail}</div>
         <span class="file-type" style="background: ${typeColors[file.type]}20; color: ${typeColors[file.type]}">${typeLabels[file.type]}</span>
         <p class="file-name">${file.name}</p>
         <div class="file-meta">
@@ -365,6 +383,31 @@ function deleteFile(fileId) {
         renderFiles();
         showNotification('File deleted successfully', 'success');
     }
+}
+
+// Video player functions
+function playVideo(fileId) {
+    const file = userFiles.find(f => f.id == fileId);
+    if (!file || file.type !== 'video') return;
+
+    // For demo purposes, show placeholder message
+    // In a real app, you would load the actual video file
+    videoTitle.textContent = file.name;
+    videoSize.textContent = `Size: ${file.size}`;
+
+    // Show modal
+    videoModal.classList.remove('hidden');
+
+    // Pause any playing video
+    videoPlayer.pause();
+
+    showNotification('Video playback ready! (Demo mode - upload actual video files for playback)', 'info');
+}
+
+function closeVideoModal() {
+    videoModal.classList.add('hidden');
+    videoPlayer.pause();
+    videoSource.src = '';
 }
 
 // Notification system
