@@ -500,62 +500,7 @@ function togglePassword(inputId) {
     }
 }
 
-function handleLogin(e) {
-    e.preventDefault();
 
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-
-    // Get users from localStorage
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find(u => u.email === email && u.password === password);
-
-    if (user) {
-        currentUser = user;
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        showNotification('Welcome back!', 'success');
-        showDashboard();
-        loginForm.reset();
-    } else {
-        showNotification('Invalid email or password', 'error');
-    }
-}
-
-function handleSignup(e) {
-    e.preventDefault();
-
-    const name = document.getElementById('signupName').value;
-    const email = document.getElementById('signupEmail').value;
-    const password = document.getElementById('signupPassword').value;
-
-    // Get existing users
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-
-    // Check if email already exists
-    if (users.find(u => u.email === email)) {
-        showNotification('Email already registered', 'error');
-        return;
-    }
-
-    // Create new user
-    const newUser = {
-        id: Date.now(),
-        name,
-        email,
-        password,
-        createdAt: new Date().toISOString()
-    };
-
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
-
-    currentUser = newUser;
-    localStorage.setItem('currentUser', JSON.stringify(newUser));
-
-    showNotification('Account created successfully!', 'success');
-    showDashboard();
-    signupForm.reset();
-}
 
 function handleLogout() {
     currentUser = null;
