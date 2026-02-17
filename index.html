@@ -141,6 +141,51 @@
         </div>
     </div>
 
+    <!-- OTP Verification Page -->
+    <div class="auth-page hidden" id="otpPage">
+        <div class="auth-container">
+            <div class="auth-card glass">
+                <div class="auth-header">
+                    <div class="logo-large">
+                        <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="60" height="60" rx="16" fill="url(#gradient3_otp)" />
+                            <path d="M30 15v30M15 30h30" stroke="white" stroke-width="3" stroke-linecap="round" />
+                            <circle cx="30" cy="30" r="12" stroke="white" stroke-width="2.5" fill="none" />
+                            <defs>
+                                <linearGradient id="gradient3_otp" x1="0" y1="0" x2="60" y2="60">
+                                    <stop offset="0%" stop-color="#10b981" />
+                                    <stop offset="100%" stop-color="#06b6d4" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <h1 class="auth-title">Verify Your Identity</h1>
+                    <p class="auth-subtitle">We've sent a 6-digit code to your email (Simulated)</p>
+                </div>
+
+                <div class="otp-container">
+                    <div class="otp-inputs">
+                        <input type="text" maxlength="1" class="otp-input" data-index="0">
+                        <input type="text" maxlength="1" class="otp-input" data-index="1">
+                        <input type="text" maxlength="1" class="otp-input" data-index="2">
+                        <input type="text" maxlength="1" class="otp-input" data-index="3">
+                        <input type="text" maxlength="1" class="otp-input" data-index="4">
+                        <input type="text" maxlength="1" class="otp-input" data-index="5">
+                    </div>
+                </div>
+
+                <button id="verifyOtpBtn" class="btn-primary" style="margin-top: 2rem;">
+                    <span>Verify & Continue</span>
+                </button>
+
+                <div class="auth-footer">
+                    <p>Didn't receive the code? <a href="#" id="resendOtp">Resend Code</a></p>
+                    <p style="margin-top: 10px;"><a href="#" onclick="showLogin(); return false;">Back to Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Dashboard -->
     <div class="dashboard hidden" id="dashboard">
         <header class="header">

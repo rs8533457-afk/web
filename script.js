@@ -1,10 +1,13 @@
 // State management
 let currentUser = null;
 let userFiles = [];
+let currentOtp = null;
+let pendingUser = null; // Store user temporarily during OTP phase
 
 // DOM Elements
 const loginPage = document.getElementById('loginPage');
 const signupPage = document.getElementById('signupPage');
+const otpPage = document.getElementById('otpPage');
 const dashboard = document.getElementById('dashboard');
 const loginForm = document.getElementById('loginForm');
 const signupForm = document.getElementById('signupForm');
@@ -20,6 +23,11 @@ const progressFill = document.getElementById('progressFill');
 const progressText = document.getElementById('progressText');
 const filterBtns = document.querySelectorAll('.filter-btn');
 const userName = document.getElementById('userName');
+
+// OTP Elements
+const otpInputs = document.querySelectorAll('.otp-input');
+const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+const resendOtpBtn = document.getElementById('resendOtp');
 
 // File Viewer Elements
 const fileViewerModal = document.getElementById('fileViewerModal');
@@ -228,10 +236,7 @@ async function handleLogin(e) {
         const user = users.find(u => u.email === email && u.password === password);
 
         if (user) {
-            currentUser = user;
-            localStorage.setItem('currentUser', JSON.stringify(user));
-            showNotification('Welcome back!', 'success');
-            showDashboard();
+            startOtpVerification(user);
             loginForm.reset();
         } else {
             showNotification('Invalid email or password', 'error');
@@ -257,7 +262,7 @@ async function handleSignup(e) {
             return;
         }
 
-        // Create new user
+        // Create new user (pending until OTP)
         const newUser = {
             id: Date.now(),
             name,
@@ -266,19 +271,108 @@ async function handleSignup(e) {
             createdAt: new Date().toISOString()
         };
 
-        await filesAppDB.add('users', newUser);
-
-        currentUser = newUser;
-        localStorage.setItem('currentUser', JSON.stringify(newUser));
-
-        showNotification('Account created successfully!', 'success');
-        showDashboard();
+        startOtpVerification(newUser, true);
         signupForm.reset();
     } catch (error) {
         console.error('Signup error:', error);
         showNotification('Signup failed', 'error');
     }
 }
+
+// OTP Logic
+function startOtpVerification(user, isSignup = false) {
+    pendingUser = user;
+    currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Simulate sending OTP
+    console.log(`%c[OTP SYSTEM] Code for ${user.email}: ${currentOtp}`, 'color: #10b981; font-weight: bold; font-size: 14px;');
+    showNotification(`Simulated OTP: ${currentOtp}`, 'success');
+
+    showOTPPage();
+}
+
+function handleOTPVerification() {
+    const enteredOtp = Array.from(otpInputs).map(input => input.value).join('');
+
+    if (enteredOtp.length !== 6) {
+        showNotification('Please enter all 6 digits', 'error');
+        return;
+    }
+
+    if (enteredOtp === currentOtp) {
+        completeAuth();
+    } else {
+        showNotification('Invalid code. Please try again.', 'error');
+        // Clear inputs on failure
+        otpInputs.forEach(input => input.value = '');
+        otpInputs[0].focus();
+    }
+}
+
+async function completeAuth() {
+    try {
+        // If it was a signup, we need to add the user to the database now
+        // We know it's a "signup" if the user isn't in the DB yet or we flag it
+        // A simpler way: just try to put it. 
+        await filesAppDB.add('users', pendingUser);
+
+        currentUser = pendingUser;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+        showNotification('Verification successful!', 'success');
+        showDashboard();
+
+        // Cleanup
+        pendingUser = null;
+        currentOtp = null;
+        otpInputs.forEach(input => input.value = '');
+    } catch (error) {
+        console.error('Auth completion error:', error);
+        showNotification('Failed to complete authentication', 'error');
+    }
+}
+
+function handleResendOTP(e) {
+    if (e) e.preventDefault();
+    if (!pendingUser) return;
+
+    currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log(`%c[OTP SYSTEM] New Code for ${pendingUser.email}: ${currentOtp}`, 'color: #10b981; font-weight: bold; font-size: 14px;');
+    showNotification(`New OTP sent: ${currentOtp}`, 'success');
+
+    // Clear and focus
+    otpInputs.forEach(input => input.value = '');
+    otpInputs[0].focus();
+}
+
+// Initialize OTP Inputs Behavior
+otpInputs.forEach((input, index) => {
+    input.addEventListener('keyup', (e) => {
+        if (e.key >= 0 && e.key <= 9) {
+            if (index < otpInputs.length - 1) {
+                otpInputs[index + 1].focus();
+            }
+        } else if (e.key === 'Backspace') {
+            if (index > 0) {
+                otpInputs[index - 1].focus();
+            }
+        }
+    });
+
+    // Handle paste
+    input.addEventListener('paste', (e) => {
+        const data = e.clipboardData.getData('text');
+        if (data.length === 6 && /^\d+$/.test(data)) {
+            const digits = data.split('');
+            otpInputs.forEach((inp, idx) => inp.value = digits[idx]);
+            handleOTPVerification();
+        }
+    });
+});
+
+verifyOtpBtn.addEventListener('click', handleOTPVerification);
+resendOtpBtn.addEventListener('click', handleResendOTP);
+
 
 
 // Updated createFileCard to open file viewer
@@ -478,12 +572,23 @@ function showLogin() {
 function showSignup() {
     loginPage.classList.add('hidden');
     signupPage.classList.remove('hidden');
+    otpPage.classList.add('hidden');
     dashboard.classList.add('hidden');
+}
+
+function showOTPPage() {
+    loginPage.classList.add('hidden');
+    signupPage.classList.add('hidden');
+    otpPage.classList.remove('hidden');
+    dashboard.classList.add('hidden');
+    // Focus first input
+    setTimeout(() => otpInputs[0].focus(), 100);
 }
 
 function showDashboard() {
     loginPage.classList.add('hidden');
     signupPage.classList.add('hidden');
+    otpPage.classList.add('hidden');
     dashboard.classList.remove('hidden');
 
     userName.textContent = currentUser.name;
