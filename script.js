@@ -37,66 +37,251 @@ const commentInput = document.getElementById('commentInput');
 
 let currentFileId = null;
 
+// IndexedDB Helper
+const filesAppDB = {
+    dbName: 'FilesAppDB',
+    version: 2, // Bumped version to force upgrade/create stores
+    db: null,
+
+    init: function () {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.dbName, this.version);
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                // Create stores if they don't exist
+                if (!db.objectStoreNames.contains('users')) {
+                    db.createObjectStore('users', { keyPath: 'email' });
+                }
+                if (!db.objectStoreNames.contains('files')) {
+                    db.createObjectStore('files', { keyPath: 'id' });
+                }
+                if (!db.objectStoreNames.contains('comments')) {
+                    db.createObjectStore('comments', { keyPath: 'id' });
+                }
+            };
+
+            request.onsuccess = (event) => {
+                this.db = event.target.result;
+                console.log('IndexedDB initialized');
+                resolve(this.db);
+            };
+
+            request.onerror = (event) => {
+                console.error('IndexedDB error:', event.target.error);
+                showNotification('Database Error: ' + event.target.error.message, 'error');
+                reject(event.target.error);
+            };
+        });
+    },
+
+    getAll: function (storeName) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], 'readonly');
+            const store = transaction.objectStore(storeName);
+            const request = store.getAll();
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    add: function (storeName, item) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const request = store.put(item);
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    delete: function (storeName, key) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const request = store.delete(key);
+
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    get: function (storeName, key) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], 'readonly');
+            const store = transaction.objectStore(storeName);
+            const request = store.get(key);
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+};
+
+async function loadUserFiles() {
+    try {
+        const allFiles = await filesAppDB.getAll('files');
+        console.log('All files in DB:', allFiles); // Debug
+
+        if (currentUser) {
+            userFiles = allFiles.filter(f => f.userId === currentUser.id);
+            console.log('User files:', userFiles); // Debug
+
+            if (userFiles.length > 0) {
+                showNotification(`Loaded ${userFiles.length} files from database`, 'success');
+            } else {
+                showNotification('No files found in database for this user', 'info');
+            }
+        } else {
+            console.warn('No current user in loadUserFiles');
+            userFiles = [];
+        }
+
+        renderFiles();
+
+        // Debug notification
+        if (userFiles.length === 0 && allFiles.length > 0) {
+            console.log('Files exist but differ from current user');
+        }
+    } catch (e) {
+        console.error('Error loading files:', e);
+        showNotification('Failed to load files: ' + e.message, 'error');
+        userFiles = [];
+        renderFiles();
+    }
+}
+
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    checkAuth();
-    initializeEventListeners();
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        await filesAppDB.init();
+        await checkAuth(); // Make checkAuth async or handle promise
+        initializeEventListeners();
+    } catch (error) {
+        console.error('Failed to initialize app:', error);
+        showNotification('Failed to initialize storage', 'error');
+    }
 });
 
 // Check authentication
-function checkAuth() {
+async function checkAuth() {
     const user = localStorage.getItem('currentUser');
     if (user) {
         currentUser = JSON.parse(user);
-        showDashboard();
+        // Verify user still exists in DB (optional, but good practice)
+        try {
+            const dbUser = await filesAppDB.get('users', currentUser.email);
+            if (dbUser) {
+                showDashboard();
+            } else {
+                // User in local storage but not in DB (cleared?)
+                showLogin();
+            }
+        } catch (e) {
+            console.error('Auth check failed', e);
+            showLogin();
+        }
     } else {
         showLogin();
     }
 }
 
-// Initialize event listeners
-function initializeEventListeners() {
-    // Auth navigation
-    showSignupBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        showSignup();
-    });
+// Forms
+loginForm.addEventListener('submit', handleLogin);
+signupForm.addEventListener('submit', handleSignup);
+logoutBtn.addEventListener('click', handleLogout);
 
-    showLoginBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        showLogin();
-    });
+// Upload
+uploadArea.addEventListener('dragover', handleDragOver);
+uploadArea.addEventListener('dragleave', handleDragLeave);
+uploadArea.addEventListener('drop', handleDrop);
+uploadArea.addEventListener('click', () => fileInput.click());
 
-    // Forms
-    loginForm.addEventListener('submit', handleLogin);
-    signupForm.addEventListener('submit', handleSignup);
-    logoutBtn.addEventListener('click', handleLogout);
+browseBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    fileInput.click();
+});
 
-    // Upload
-    uploadArea.addEventListener('dragover', handleDragOver);
-    uploadArea.addEventListener('dragleave', handleDragLeave);
-    uploadArea.addEventListener('drop', handleDrop);
-    uploadArea.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', handleFileSelect);
 
-    browseBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        fileInput.click();
-    });
+// Filters
+filterBtns.forEach(btn => {
+    btn.addEventListener('click', handleFilter);
+});
 
-    fileInput.addEventListener('change', handleFileSelect);
+// File Viewer modal
+modalOverlay.addEventListener('click', closeFileViewer);
+modalClose.addEventListener('click', closeFileViewer);
 
-    // Filters
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', handleFilter);
-    });
+// Comments
+commentForm.addEventListener('submit', handleAddComment);
 
-    // File Viewer modal
-    modalOverlay.addEventListener('click', closeFileViewer);
-    modalClose.addEventListener('click', closeFileViewer);
 
-    // Comments
-    commentForm.addEventListener('submit', handleAddComment);
+async function handleLogin(e) {
+    e.preventDefault();
+
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+
+    try {
+        const users = await filesAppDB.getAll('users');
+        const user = users.find(u => u.email === email && u.password === password);
+
+        if (user) {
+            currentUser = user;
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            showNotification('Welcome back!', 'success');
+            showDashboard();
+            loginForm.reset();
+        } else {
+            showNotification('Invalid email or password', 'error');
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        showNotification('Login failed', 'error');
+    }
 }
+
+async function handleSignup(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('signupName').value;
+    const email = document.getElementById('signupEmail').value;
+    const password = document.getElementById('signupPassword').value;
+
+    try {
+        // Check if email already exists
+        const existingUser = await filesAppDB.get('users', email);
+        if (existingUser) {
+            showNotification('Email already registered', 'error');
+            return;
+        }
+
+        // Create new user
+        const newUser = {
+            id: Date.now(),
+            name,
+            email,
+            password,
+            createdAt: new Date().toISOString()
+        };
+
+        await filesAppDB.add('users', newUser);
+
+        currentUser = newUser;
+        localStorage.setItem('currentUser', JSON.stringify(newUser));
+
+        showNotification('Account created successfully!', 'success');
+        showDashboard();
+        signupForm.reset();
+    } catch (error) {
+        console.error('Signup error:', error);
+        showNotification('Signup failed', 'error');
+    }
+}
+
 
 // Updated createFileCard to open file viewer
 function createFileCard(file, index) {
@@ -195,53 +380,58 @@ function closeFileViewer() {
 }
 
 // Commenting System
-function loadComments(fileId) {
-    const allComments = JSON.parse(localStorage.getItem('comments') || '[]');
-    const fileComments = allComments.filter(c => c.fileId == fileId);
+// Commenting System
+async function loadComments(fileId) {
+    try {
+        const allComments = await filesAppDB.getAll('comments');
+        const fileComments = allComments.filter(c => c.fileId == fileId);
 
-    commentsList.innerHTML = '';
+        commentsList.innerHTML = '';
 
-    if (fileComments.length === 0) {
-        commentsList.innerHTML = '<p class="empty-state" style="font-size: 14px; padding: 20px;">No comments yet. Be the first!</p>';
-        return;
-    }
+        if (fileComments.length === 0) {
+            commentsList.innerHTML = '<p class="empty-state" style="font-size: 14px; padding: 20px;">No comments yet. Be the first!</p>';
+            return;
+        }
 
-    fileComments.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        fileComments.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-    fileComments.forEach(comment => {
-        const commentEl = document.createElement('div');
-        commentEl.className = 'comment-item';
+        fileComments.forEach(comment => {
+            const commentEl = document.createElement('div');
+            commentEl.className = 'comment-item';
 
-        // Check if current user can delete (owner of comment or owner of file)
-        const file = userFiles.find(f => f.id == fileId);
-        const canDelete = comment.userId === currentUser.id || (file && file.userId === currentUser.id);
-        const deleteBtn = canDelete ? `<span class="comment-delete" onclick="deleteComment(${comment.id})">Delete</span>` : '';
+            // Check if current user can delete (owner of comment or owner of file)
+            const file = userFiles.find(f => f.id == fileId);
+            const canDelete = comment.userId === currentUser.id || (file && file.userId === currentUser.id);
+            const deleteBtn = canDelete ? `<span class="comment-delete" onclick="deleteComment(${comment.id})">Delete</span>` : '';
 
-        // Initial for avatar
-        const initial = comment.userName.charAt(0).toUpperCase();
+            // Initial for avatar
+            const initial = comment.userName.charAt(0).toUpperCase();
 
-        // Format date
-        const date = new Date(comment.createdAt).toLocaleDateString();
+            // Format date
+            const date = new Date(comment.createdAt).toLocaleDateString();
 
-        commentEl.innerHTML = `
-            <div class="comment-avatar">${initial}</div>
-            <div class="comment-content">
-                <div class="comment-header">
-                    <span class="comment-name">${comment.userName}</span>
-                    <span class="comment-date">${date} ${deleteBtn}</span>
+            commentEl.innerHTML = `
+                <div class="comment-avatar">${initial}</div>
+                <div class="comment-content">
+                    <div class="comment-header">
+                        <span class="comment-name">${comment.userName}</span>
+                        <span class="comment-date">${date} ${deleteBtn}</span>
+                    </div>
+                    <div class="comment-text">${comment.text}</div>
                 </div>
-                <div class="comment-text">${comment.text}</div>
-            </div>
-        `;
+            `;
 
-        commentsList.appendChild(commentEl);
-    });
+            commentsList.appendChild(commentEl);
+        });
 
-    // Scroll to bottom
-    commentsList.scrollTop = commentsList.scrollHeight;
+        // Scroll to bottom
+        commentsList.scrollTop = commentsList.scrollHeight;
+    } catch (e) {
+        console.error('Error loading comments:', e);
+    }
 }
 
-function handleAddComment(e) {
+async function handleAddComment(e) {
     e.preventDefault();
     if (!currentFileId) return;
 
@@ -257,22 +447,26 @@ function handleAddComment(e) {
         createdAt: new Date().toISOString()
     };
 
-    const allComments = JSON.parse(localStorage.getItem('comments') || '[]');
-    allComments.push(newComment);
-    localStorage.setItem('comments', JSON.stringify(allComments));
-
-    commentInput.value = '';
-    loadComments(currentFileId);
+    try {
+        await filesAppDB.add('comments', newComment);
+        commentInput.value = '';
+        loadComments(currentFileId);
+    } catch (e) {
+        console.error('Error adding comment:', e);
+        showNotification('Failed to add comment', 'error');
+    }
 }
 
-function deleteComment(commentId) {
+async function deleteComment(commentId) {
     if (!confirm('Delete this comment?')) return;
 
-    let allComments = JSON.parse(localStorage.getItem('comments') || '[]');
-    allComments = allComments.filter(c => c.id != commentId);
-    localStorage.setItem('comments', JSON.stringify(allComments));
-
-    loadComments(currentFileId);
+    try {
+        await filesAppDB.delete('comments', commentId);
+        loadComments(currentFileId);
+    } catch (e) {
+        console.error('Error deleting comment:', e);
+        showNotification('Failed to delete comment', 'error');
+    }
 }
 
 
@@ -442,7 +636,7 @@ function handleFiles(files) {
 function saveFile(file) {
     const reader = new FileReader();
 
-    reader.onload = function (e) {
+    reader.onload = async function (e) {
         const fileData = {
             id: Date.now() + Math.random(),
             userId: currentUser.id,
@@ -455,18 +649,21 @@ function saveFile(file) {
             mimeType: file.type
         };
 
-        userFiles.push(fileData);
-
-        // Save to localStorage
-        const allFiles = JSON.parse(localStorage.getItem('files') || '[]');
-        allFiles.push(fileData);
-
         try {
-            localStorage.setItem('files', JSON.stringify(allFiles));
+            // Save to IndexedDB
+            await filesAppDB.add('files', fileData);
+
+            userFiles.push(fileData);
+            // Optional: update localStorage alias if needed, but we rely on DB now
+
+            showNotification('File uploaded successfully!', 'success');
+            renderFiles();
         } catch (e) {
-            // If storage quota exceeded, show warning
+            console.error('Save file error:', e);
             if (e.name === 'QuotaExceededError') {
                 showNotification('Storage limit reached! Large files may not be stored.', 'error');
+            } else {
+                showNotification('Error saving file data', 'error');
             }
         }
     };
@@ -479,10 +676,7 @@ function saveFile(file) {
     reader.readAsDataURL(file);
 }
 
-function loadUserFiles() {
-    const allFiles = JSON.parse(localStorage.getItem('files') || '[]');
-    userFiles = allFiles.filter(f => f.userId === currentUser.id);
-}
+
 
 function getFileType(mimeType, fileName) {
     if (mimeType.startsWith('video/') || fileName.endsWith('.mp4') || fileName.endsWith('.avi') || fileName.endsWith('.mov')) {
@@ -538,8 +732,6 @@ function renderFiles(filter = 'all') {
     });
 }
 
-
-
 function handleFilter(e) {
     filterBtns.forEach(btn => btn.classList.remove('active'));
     e.target.classList.add('active');
@@ -548,7 +740,6 @@ function handleFilter(e) {
     renderFiles(filter);
 }
 
-// File actions
 // File actions
 function downloadFile(fileId) {
     const file = userFiles.find(f => f.id == fileId);
@@ -569,23 +760,23 @@ function downloadFile(fileId) {
     showNotification('Download started', 'success');
 }
 
-function deleteFile(fileId) {
+async function deleteFile(fileId) {
     if (confirm('Are you sure you want to delete this file?')) {
-        // Remove from userFiles
-        userFiles = userFiles.filter(f => f.id != fileId);
+        try {
+            // Remove from IndexedDB
+            await filesAppDB.delete('files', fileId);
 
-        // Remove from localStorage
-        let allFiles = JSON.parse(localStorage.getItem('files') || '[]');
-        allFiles = allFiles.filter(f => f.id != fileId);
-        localStorage.setItem('files', JSON.stringify(allFiles));
+            // Remove from local state
+            userFiles = userFiles.filter(f => f.id != fileId);
 
-        renderFiles();
-        showNotification('File deleted successfully', 'success');
+            renderFiles();
+            showNotification('File deleted successfully', 'success');
+        } catch (e) {
+            console.error('Error deleting file:', e);
+            showNotification('Failed to delete file', 'error');
+        }
     }
 }
-
-// Video player functions
-
 
 // Notification system
 function showNotification(message, type = 'info') {
