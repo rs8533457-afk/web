@@ -154,11 +154,13 @@ async function loadUserFiles() {
         }
 
         renderFiles();
+        updateDashboardStats();
     } catch (e) {
         console.error('Error loading files:', e);
         showNotification('Failed to load files: ' + e.message, 'error');
         userFiles = [];
         renderFiles();
+        updateDashboardStats();
     }
 }
 
@@ -219,6 +221,21 @@ fileInput.addEventListener('change', handleFileSelect);
 filterBtns.forEach(btn => {
     btn.addEventListener('click', handleFilter);
 });
+
+// Sidebar Navigation
+document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', handleFilter);
+});
+
+// Search functionality
+const fileSearch = document.getElementById('fileSearch');
+if (fileSearch) {
+    fileSearch.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        const activeFilter = document.querySelector('.filter-btn.active, .nav-item.active')?.dataset.filter || 'all';
+        renderFiles(activeFilter, query);
+    });
+}
 
 // File Viewer modal
 modalOverlay.addEventListener('click', closeFileViewer);
@@ -822,19 +839,25 @@ function formatFileSize(bytes) {
 }
 
 // Render functions
-function renderFiles(filter = 'all') {
+function renderFiles(filter = 'all', searchQuery = '') {
     filesGrid.innerHTML = '';
 
-    const filteredFiles = filter === 'all'
+    let filteredFiles = filter === 'all'
         ? userFiles
         : userFiles.filter(file => file.type === filter);
+
+    if (searchQuery) {
+        filteredFiles = filteredFiles.filter(file =>
+            file.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }
 
     if (filteredFiles.length === 0) {
         filesGrid.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">📂</div>
-                <h3>No files yet</h3>
-                <p>Upload your first file to get started!</p>
+                <h3>${searchQuery ? 'No matching files' : 'No files yet'}</h3>
+                <p>${searchQuery ? 'Try a different search term' : 'Upload your first file to get started!'}</p>
             </div>
         `;
         return;
@@ -844,14 +867,77 @@ function renderFiles(filter = 'all') {
         const fileCard = createFileCard(file, index);
         filesGrid.appendChild(fileCard);
     });
+
+    updateDashboardStats();
+}
+
+function updateDashboardStats() {
+    const totalFilesEl = document.getElementById('totalFiles');
+    const storageUsedEl = document.getElementById('storageUsed');
+    const recentFilesEl = document.getElementById('recentFiles');
+    const storagePercentEl = document.getElementById('storagePercent');
+    const storageFillEl = document.getElementById('storageFill');
+    const storageTextEl = document.getElementById('storageText');
+
+    if (!totalFilesEl) return; // Not on dashboard
+
+    const totalFiles = userFiles.length;
+    let totalBytes = 0;
+    let newToday = 0;
+    const today = new Date().toDateString();
+
+    userFiles.forEach(file => {
+        // Handle size string (e.g., "1.2 MB")
+        const sizeParts = file.size.split(' ');
+        const value = parseFloat(sizeParts[0]);
+        const unit = sizeParts[1];
+
+        let bytes = value;
+        if (unit === 'KB') bytes *= 1024;
+        else if (unit === 'MB') bytes *= 1024 * 1024;
+        else if (unit === 'GB') bytes *= 1024 * 1024 * 1024;
+
+        totalBytes += bytes;
+
+        if (file.createdAt && new Date(file.createdAt).toDateString() === today) {
+            newToday++;
+        }
+    });
+
+    const storageUsedMB = (totalBytes / (1024 * 1024)).toFixed(1);
+    const storageLimitMB = 5120; // 5GB limit
+    const percentUsed = Math.min(100, (totalBytes / (storageLimitMB * 1024 * 1024) * 100)).toFixed(1);
+
+    totalFilesEl.textContent = totalFiles;
+    storageUsedEl.textContent = `${storageUsedMB} MB`;
+    recentFilesEl.textContent = newToday;
+
+    if (storagePercentEl) storagePercentEl.textContent = `${percentUsed}%`;
+    if (storageFillEl) storageFillEl.style.width = `${percentUsed}%`;
+    if (storageTextEl) {
+        const usedDisplay = totalBytes > 1024 * 1024 * 1024
+            ? (totalBytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
+            : storageUsedMB + ' MB';
+        storageTextEl.textContent = `${usedDisplay} of 5 GB used`;
+    }
 }
 
 function handleFilter(e) {
-    filterBtns.forEach(btn => btn.classList.remove('active'));
-    e.target.classList.add('active');
+    e.preventDefault();
+    const target = e.currentTarget;
+    const filter = target.getAttribute('data-filter') || target.dataset.filter;
 
-    const filter = e.target.dataset.filter;
-    renderFiles(filter);
+    // Update active state for both header filters and sidebar nav
+    document.querySelectorAll('.filter-btn, .nav-item').forEach(btn => {
+        if (btn.getAttribute('data-filter') === filter) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    const searchQuery = document.getElementById('fileSearch')?.value || '';
+    renderFiles(filter, searchQuery);
 }
 
 // File actions

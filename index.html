@@ -204,6 +204,18 @@
                         </svg>
                         <span>FileVault</span>
                     </div>
+                    <div class="header-center">
+                        <div class="search-bar">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                            <input type="text" id="fileSearch" placeholder="Search your files...">
+                        </div>
+                    </div>
                     <div class="header-right">
                         <span class="user-name" id="userName">User</span>
                         <button class="btn-logout" id="logoutBtn">Logout</button>
@@ -212,117 +224,180 @@
             </div>
         </header>
 
-        <main class="main">
-            <section class="hero-dashboard">
-                <div class="container">
-                    <h1 class="hero-title">Your Files</h1>
-                    <p class="hero-subtitle">Upload and manage your videos and documents</p>
-                </div>
-            </section>
+        <div class="dashboard-wrapper">
+            <aside class="sidebar">
+                <nav class="sidebar-nav">
+                    <a href="#" class="nav-item active" data-filter="all">
+                        <span class="nav-icon">📊</span>
+                        <span class="nav-text">Dashboard</span>
+                    </a>
+                    <a href="#" class="nav-item" data-filter="all">
+                        <span class="nav-icon">📂</span>
+                        <span class="nav-text">All Files</span>
+                    </a>
+                    <a href="#" class="nav-item" data-filter="video">
+                        <span class="nav-icon">🎬</span>
+                        <span class="nav-text">Videos</span>
+                    </a>
+                    <a href="#" class="nav-item" data-filter="image">
+                        <span class="nav-icon">🖼️</span>
+                        <span class="nav-text">Images</span>
+                    </a>
+                    <a href="#" class="nav-item" data-filter="document">
+                        <span class="nav-icon">📄</span>
+                        <span class="nav-text">Documents</span>
+                    </a>
+                </nav>
 
-            <section class="upload-section">
-                <div class="container">
-                    <div class="upload-card glass">
-                        <div class="upload-area" id="uploadArea">
-                            <div class="upload-icon">
-                                <svg width="80" height="80" viewBox="0 0 24 24" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"
-                                        stroke="url(#uploadGradient)" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round" />
-                                    <defs>
-                                        <linearGradient id="uploadGradient" x1="12" y1="3" x2="12" y2="19">
-                                            <stop offset="0%" stop-color="#6366f1" />
-                                            <stop offset="100%" stop-color="#8b5cf6" />
-                                        </linearGradient>
-                                    </defs>
-                                </svg>
+                <div class="sidebar-footer">
+                    <div class="storage-info">
+                        <div class="storage-header">
+                            <span class="storage-title">Storage Usage</span>
+                            <span class="storage-percent" id="storagePercent">0%</span>
+                        </div>
+                        <div class="storage-bar">
+                            <div class="storage-fill" id="storageFill"></div>
+                        </div>
+                        <p class="storage-text" id="storageText">0 MB of 5 GB used</p>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="main">
+                <section class="stats-section">
+                    <div class="container-fluid">
+                        <div class="stats-grid">
+                            <div class="stats-card glass">
+                                <div class="stats-icon" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">📁
+                                </div>
+                                <div class="stats-info">
+                                    <h3 id="totalFiles">0</h3>
+                                    <p>Total Files</p>
+                                </div>
                             </div>
-                            <h3 class="upload-title">Drag & Drop Files Here</h3>
-                            <p class="upload-text">or click to browse</p>
-                            <p class="upload-supported">Supports: Videos, Documents, Images, Archives</p>
-                            <input type="file" id="fileInput" multiple hidden>
-                            <button class="btn-upload" id="browseBtn">Browse Files</button>
-                        </div>
-
-                        <div class="upload-progress hidden" id="uploadProgress">
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="progressFill"></div>
+                            <div class="stats-card glass">
+                                <div class="stats-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">📈
+                                </div>
+                                <div class="stats-info">
+                                    <h3 id="storageUsed">0 MB</h3>
+                                    <p>Storage Used</p>
+                                </div>
                             </div>
-                            <p class="progress-text" id="progressText">Uploading...</p>
+                            <div class="stats-card glass">
+                                <div class="stats-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">✨
+                                </div>
+                                <div class="stats-info">
+                                    <h3 id="recentFiles">0</h3>
+                                    <p>New Today</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </section>
+                </section>
 
-            <section class="files-section">
-                <div class="container">
-                    <div class="section-header">
-                        <h2 class="section-title">My Files</h2>
-                        <div class="filter-buttons">
-                            <button class="filter-btn active" data-filter="all">All</button>
-                            <button class="filter-btn" data-filter="video">Videos</button>
-                            <button class="filter-btn" data-filter="document">Documents</button>
-                            <button class="filter-btn" data-filter="image">Images</button>
+                <section class="upload-section">
+                    <div class="container">
+                        <div class="upload-card glass">
+                            <div class="upload-area" id="uploadArea">
+                                <div class="upload-icon">
+                                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"
+                                            stroke="url(#uploadGradient)" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round" />
+                                        <defs>
+                                            <linearGradient id="uploadGradient" x1="12" y1="3" x2="12" y2="19">
+                                                <stop offset="0%" stop-color="#6366f1" />
+                                                <stop offset="100%" stop-color="#8b5cf6" />
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                </div>
+                                <h3 class="upload-title">Drag & Drop Files Here</h3>
+                                <p class="upload-text">or click to browse</p>
+                                <p class="upload-supported">Supports: Videos, Documents, Images, Archives</p>
+                                <input type="file" id="fileInput" multiple hidden>
+                                <button class="btn-upload" id="browseBtn">Browse Files</button>
+                            </div>
+
+                            <div class="upload-progress hidden" id="uploadProgress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="progressFill"></div>
+                                </div>
+                                <p class="progress-text" id="progressText">Uploading...</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="files-grid" id="filesGrid">
-                        <!-- Files will be dynamically added here -->
-                    </div>
-                </div>
-            </section>
-        </main>
-    </div>
+                </section>
 
-    <!-- File Viewer Modal (Generic for all files) -->
-    <div class="modal hidden" id="fileViewerModal">
-        <div class="modal-overlay" id="modalOverlay"></div>
-        <div class="modal-content">
-            <button class="modal-close" id="modalClose">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                </svg>
-            </button>
-
-            <div class="file-viewer-layout">
-                <div class="preview-container" id="previewContainer">
-                    <!-- Dynamic content will be injected here -->
-                    <video id="videoPlayer" controls class="hidden"></video>
-                    <img id="imagePreview" src="" alt="Preview" class="hidden">
-                    <div id="iconPreview" class="hidden"></div>
-                </div>
-
-                <div class="file-details-panel">
-                    <div class="file-header">
-                        <h3 id="modalFileName">File Name</h3>
-                        <p id="modalFileSize">Size: 0 MB</p>
-                    </div>
-
-                    <div class="comments-section">
-                        <h4>Comments</h4>
-                        <div class="comments-list" id="commentsList">
-                            <!-- Comments injected here -->
+                <section class="files-section">
+                    <div class="container">
+                        <div class="section-header">
+                            <h2 class="section-title">My Files</h2>
+                            <div class="filter-buttons">
+                                <button class="filter-btn active" data-filter="all">All</button>
+                                <button class="filter-btn" data-filter="video">Videos</button>
+                                <button class="filter-btn" data-filter="document">Documents</button>
+                                <button class="filter-btn" data-filter="image">Images</button>
+                            </div>
                         </div>
-                        <form class="comment-form" id="commentForm">
-                            <input type="text" id="commentInput" placeholder="Write a comment..." required>
-                            <button type="submit" class="btn-send">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor"
-                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                            </button>
-                        </form>
+                        <div class="files-grid" id="filesGrid">
+                            <!-- Files will be dynamically added here -->
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- File Viewer Modal (Generic for all files) -->
+        <div class="modal hidden" id="fileViewerModal">
+            <div class="modal-overlay" id="modalOverlay"></div>
+            <div class="modal-content">
+                <button class="modal-close" id="modalClose">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </button>
+
+                <div class="file-viewer-layout">
+                    <div class="preview-container" id="previewContainer">
+                        <!-- Dynamic content will be injected here -->
+                        <video id="videoPlayer" controls class="hidden"></video>
+                        <img id="imagePreview" src="" alt="Preview" class="hidden">
+                        <div id="iconPreview" class="hidden"></div>
+                    </div>
+
+                    <div class="file-details-panel">
+                        <div class="file-header">
+                            <h3 id="modalFileName">File Name</h3>
+                            <p id="modalFileSize">Size: 0 MB</p>
+                        </div>
+
+                        <div class="comments-section">
+                            <h4>Comments</h4>
+                            <div class="comments-list" id="commentsList">
+                                <!-- Comments injected here -->
+                            </div>
+                            <form class="comment-form" id="commentForm">
+                                <input type="text" id="commentInput" placeholder="Write a comment..." required>
+                                <button type="submit" class="btn-send">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor"
+                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- EmailJS SDK -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+        <!-- EmailJS SDK -->
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
-    <script src="script.js"></script>
+        <script src="script.js"></script>
 </body>
 
 </html>
