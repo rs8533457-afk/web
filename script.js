@@ -981,10 +981,18 @@ async function handleFiles(files) {
 
     for (const [index, file] of fileArray.entries()) {
         try {
-            await saveFile(file);
+            // Check hard limit (50MB) for non-images
+            const isImage = file.type.startsWith('image/');
+            if (!isImage && file.size > 50 * 1024 * 1024) {
+                showNotification(`Skipped: "${file.name}" exceeds 50MB limit.`, 'error');
+                continue;
+            }
+
             const progress = ((index + 1) / fileArray.length) * 100;
             progressFill.style.width = `${progress}%`;
-            progressText.textContent = `Uploading... ${index + 1}/${fileArray.length}`;
+            progressText.textContent = `Processing ${index + 1}/${fileArray.length}: ${file.name}`;
+
+            await saveFile(file);
         } catch (error) {
             console.error(`Error uploading ${file.name}:`, error);
         }
@@ -1002,36 +1010,49 @@ async function handleFiles(files) {
 }
 
 async function saveFile(file) {
+    let fileToUpload = file;
+    const isImage = file.type.startsWith('image/');
+
+    // 1. Client-side Compression for Images
+    if (isImage && file.size > 1 * 1024 * 1024) { // Only compress if > 1MB
+        try {
+            progressText.textContent = `Optimizing ${file.name}...`;
+            fileToUpload = await compressImage(file);
+            console.log(`Compression saved: ${((1 - fileToUpload.size / file.size) * 100).toFixed(1)}%`);
+        } catch (e) {
+            console.warn('Compression failed, trying original file:', e);
+        }
+    }
+
+    // Final size check (Limit: 50MB exactly)
+    if (fileToUpload.size > 50 * 1024 * 1024) {
+        throw new Error('File object size exceeds 50MB (Supabase Free Tier limit).');
+    }
+
     const fileId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     const storagePath = `${currentUser.id}/${fileId}_${file.name}`;
 
-    // Show progress (start)
+    // Update UI Progress
     uploadProgress.classList.remove('hidden');
     progressFill.style.width = '20%';
     progressText.textContent = `Uploading ${file.name}...`;
 
     try {
-        // 1. Upload to Supabase Storage
+        // 2. Upload to Supabase Storage
         const { data: uploadData, error: uploadError } = await supabaseClient
             .storage
             .from('files')
-            .upload(storagePath, file);
+            .upload(storagePath, fileToUpload);
 
         if (uploadError) throw uploadError;
 
         progressFill.style.width = '60%';
 
-        // 2. Get Public URL
-        const { data: { publicUrl } } = supabaseClient
-            .storage
-            .from('files')
-            .getPublicUrl(storagePath);
-
         const fileData = {
             id: fileId,
             user_id: currentUser.id,
             name: file.name,
-            size: formatFileSize(file.size),
+            size: formatFileSize(fileToUpload.size),
             type: getFileType(file.type, file.name),
             uploaded_at: new Date().toISOString(),
             thumbnail: getFileThumbnail(file.type),
@@ -1039,7 +1060,7 @@ async function saveFile(file) {
             mime_type: file.type
         };
 
-        // 3. Save metadata to Firestore (files table)
+        // 3. Save metadata
         const { error: dbError } = await supabaseClient
             .from('files')
             .insert([fileData]);
@@ -1050,18 +1071,65 @@ async function saveFile(file) {
 
         setTimeout(() => {
             uploadProgress.classList.add('hidden');
-            showNotification('File uploaded successfully!', 'success');
-            loadUserFiles(); // Refresh files
+            showNotification(`"${file.name}" uploaded successfully!`, 'success');
+            loadUserFiles();
         }, 500);
 
-        // Log activity
-        logActivity('upload', file.name, `Size: ${fileData.size}`);
+        logActivity('upload', file.name, `Size: ${fileData.size} (Optimized)`);
 
     } catch (e) {
         console.error('Save file error:', e);
         uploadProgress.classList.add('hidden');
-        showNotification('Error saving file: ' + e.message, 'error');
+        showNotification(`Error: ${e.message}`, 'error');
+        throw e;
     }
+}
+
+// Compression Helper
+function compressImage(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 1920;
+                const MAX_HEIGHT = 1080;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Use JPEG for best compression, 0.8 quality
+                canvas.toBlob((blob) => {
+                    const compressedFile = new File([blob], file.name, {
+                        type: 'image/jpeg',
+                        lastModified: Date.now()
+                    });
+                    resolve(compressedFile);
+                }, 'image/jpeg', 0.8);
+            };
+            img.onerror = reject;
+        };
+        reader.onerror = reject;
+    });
 }
 
 
