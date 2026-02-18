@@ -53,12 +53,16 @@ ALTER TABLE public.files ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activity ENABLE ROW LEVEL SECURITY;
 
--- Profiles: Users can only see/edit their own profile
+-- Profiles: Users can only see/edit/insert their own profile
 CREATE POLICY "Users can view own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can insert own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- Files: Users can only manage their own files
-CREATE POLICY "Users can manage own files" ON public.files FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own files" ON public.files FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can view own files" ON public.files FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own files" ON public.files FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users can update own files" ON public.files FOR UPDATE USING (auth.uid() = user_id);
 
 -- Comments: Users can see all comments, but only delete their own (or if they own the file)
 CREATE POLICY "Anyone can view comments" ON public.comments FOR SELECT USING (true);
@@ -68,3 +72,28 @@ CREATE POLICY "Users can delete own comments" ON public.comments FOR DELETE USIN
 -- Activity: Users can only see their own activity
 CREATE POLICY "Users can view own activity" ON public.activity FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own activity" ON public.activity FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Storage Policies for 'files' bucket
+-- Allow users to upload files to their own folder
+CREATE POLICY "Users can upload to their own folder"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'files' AND
+  (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Allow users to view their own files
+CREATE POLICY "Users can view their own files"
+ON storage.objects FOR SELECT
+USING (
+  bucket_id = 'files' AND
+  (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Allow users to delete their own files
+CREATE POLICY "Users can delete their own files"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'files' AND
+  (storage.foldername(name))[1] = auth.uid()::text
+);
