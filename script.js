@@ -21,6 +21,11 @@ const SUPABASE_CONFIG = {
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.ANON_KEY);
 
+// Initialize EmailJS
+if (typeof emailjs !== 'undefined') {
+    emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
+}
+
 // Updated filesAppDB to use Supabase
 const filesAppDB = {
     getAll: async function (storeName) {
@@ -229,45 +234,106 @@ async function handleLogin(e) {
 
 async function handleSignup(e) {
     e.preventDefault();
-    const name = document.getElementById('signupName').value;
-    const email = document.getElementById('signupEmail').value;
+    const name = document.getElementById('signupName').value.trim();
+    const email = document.getElementById('signupEmail').value.trim();
     const password = document.getElementById('signupPassword').value;
 
-    console.log('Attempting signup for:', email);
+    if (!name || !email || !password) {
+        showNotification('Please fill in all fields', 'error');
+        return;
+    }
+
+    console.log('Initiating OTP flow for:', email);
 
     try {
-        const { data, error } = await supabaseClient.auth.signUp({
-            email,
-            password,
-            options: {
-                data: {
-                    full_name: name
-                }
-            }
-        });
+        // 1. Store pending user data
+        pendingUser = { name, email, password };
 
-        if (error) {
-            console.error('Supabase Signup Error:', error);
-            throw error;
-        }
+        // 2. Generate and Send OTP
+        const otp = generateOtp();
+        currentOtp = otp;
 
-        if (data.user) {
-            console.log('Signup successful, user id:', data.user.id);
-            // Create profile
-            const { error: profileError } = await supabaseClient.from('profiles').insert([
-                { id: data.user.id, name, email }
-            ]);
+        await sendOtpEmail(email, name, otp);
 
-            if (profileError) {
-                console.warn('Initial profile creation failed (might exist or RLS):', profileError);
-            }
-
-            showNotification('Signup successful! You can now log in.', 'success');
-            showLogin();
-        }
+        // 3. Show OTP Page
+        showOtpPage(email);
+        showNotification('OTP sent to your email!', 'success');
     } catch (error) {
-        console.error('Critical Signup Error:', error);
-        showNotification(error.message || 'Signup failed', 'error');
+        console.error('Signup/OTP error:', error);
+        showNotification('Failed to send OTP. Please try again.', 'error');
+    }
+}
+
+// OTP Flow Functions
+function generateOtp() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+async function sendOtpEmail(email, name, otp) {
+    return emailjs.send(EMAILJS_CONFIG.SERVICE_ID, EMAILJS_CONFIG.TEMPLATE_ID, {
+        to_name: name,
+        to_email: email,
+        otp_code: otp,
+        reply_to: 'noreply@filevault.com'
+    });
+}
+
+function showOtpPage(email) {
+    signupPage.classList.add('hidden');
+    loginPage.classList.add('hidden');
+    otpPage.classList.remove('hidden');
+    document.getElementById('otpSubtitle').textContent = `We've sent a 6-digit code to ${email}`;
+
+    // Reset OTP inputs
+    otpInputs.forEach(input => input.value = '');
+    otpInputs[0].focus();
+}
+
+async function handleVerifyOtp() {
+    const enteredOtp = Array.from(otpInputs).map(input => input.value).join('');
+
+    if (enteredOtp.length !== 6) {
+        showNotification('Please enter the full 6-digit code', 'error');
+        return;
+    }
+
+    if (enteredOtp === currentOtp) {
+        console.log('OTP verified! Completing Supabase signup...');
+
+        try {
+            const { name, email, password } = pendingUser;
+            const { data, error } = await supabaseClient.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: { full_name: name }
+                }
+            });
+
+            if (error) throw error;
+
+            if (data.user) {
+                // Create profile in Postgres
+                await supabaseClient.from('profiles').insert([
+                    { id: data.user.id, name, email }
+                ]);
+
+                showNotification('Account created successfully!', 'success');
+                showLogin();
+
+                // Clear state
+                currentOtp = null;
+                pendingUser = null;
+            }
+        } catch (error) {
+            console.error('Verification/Signup error:', error);
+            showNotification(error.message || 'Signup failed after verification', 'error');
+        }
+    } else {
+        showNotification('Invalid OTP code. Please try again.', 'error');
+        // Clear inputs on error
+        otpInputs.forEach(input => input.value = '');
+        otpInputs[0].focus();
     }
 }
 
@@ -348,6 +414,35 @@ async function checkAuth() {
 loginForm.addEventListener('submit', handleLogin);
 signupForm.addEventListener('submit', handleSignup);
 logoutBtn.addEventListener('click', handleLogout);
+
+// OTP Interaction
+otpInputs.forEach((input, index) => {
+    input.addEventListener('input', (e) => {
+        if (e.target.value.length === 1 && index < otpInputs.length - 1) {
+            otpInputs[index + 1].focus();
+        }
+    });
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !e.target.value && index > 0) {
+            otpInputs[index - 1].focus();
+        }
+    });
+});
+
+if (verifyOtpBtn) verifyOtpBtn.addEventListener('click', handleVerifyOtp);
+
+if (resendOtpBtn) {
+    resendOtpBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        if (pendingUser) {
+            const otp = generateOtp();
+            currentOtp = otp;
+            await sendOtpEmail(pendingUser.email, pendingUser.name, otp);
+            showNotification('New code sent!', 'success');
+        }
+    });
+}
 
 // Upload
 uploadArea.addEventListener('dragover', handleDragOver);
