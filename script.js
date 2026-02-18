@@ -322,7 +322,8 @@ async function sendEmailOTP(user, otp) {
         await emailjs.send(
             EMAILJS_CONFIG.SERVICE_ID,
             EMAILJS_CONFIG.TEMPLATE_ID,
-            templateParams
+            templateParams,
+            EMAILJS_CONFIG.PUBLIC_KEY
         );
 
         showNotification('OTP sent to your email!', 'success');
