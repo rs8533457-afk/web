@@ -142,6 +142,14 @@ const profileNameInput = document.getElementById('profileName');
 const profileEmailInput = document.getElementById('profileEmail');
 const userAvatarSmall = document.getElementById('userAvatarSmall');
 
+// Share Elements
+const shareModal = document.getElementById('shareModal');
+const shareModalOverlay = document.getElementById('shareModalOverlay');
+const shareModalClose = document.getElementById('shareModalClose');
+const shareLinkInput = document.getElementById('shareLinkInput');
+const copyShareLinkBtn = document.getElementById('copyShareLinkBtn');
+const shareStatusText = document.getElementById('shareStatusText');
+
 let currentFileId = null;
 
 // Auth Migration to Supabase
@@ -366,6 +374,11 @@ if (profileModalOverlay) profileModalOverlay.addEventListener('click', closeProf
 if (profileModalClose) profileModalClose.addEventListener('click', closeProfileModal);
 if (profileForm) profileForm.addEventListener('submit', handleUpdateProfile);
 
+// Share
+if (shareModalOverlay) shareModalOverlay.addEventListener('click', closeShareModal);
+if (shareModalClose) shareModalClose.addEventListener('click', closeShareModal);
+if (copyShareLinkBtn) copyShareLinkBtn.addEventListener('click', copyShareLink);
+
 
 // Updated File Functions for Supabase
 async function loadUserFiles() {
@@ -422,6 +435,11 @@ function createFileCard(file, index) {
                     <button class="btn-icon" onclick="downloadFile('${file.id}')" title="Download">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <button class="btn-icon" onclick="shareFile('${file.id}')" title="Share">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </button>
                     <button class="btn-icon delete" onclick="deleteFile('${file.id}')" title="Delete">
@@ -1191,4 +1209,45 @@ function setupRealtimeSubscriptions() {
             }
         })
         .subscribe();
+}
+
+// File Sharing Functions
+async function shareFile(fileId) {
+    const file = userFiles.find(f => f.id == fileId);
+    if (!file) return;
+
+    try {
+        const { data: { publicUrl } } = supabaseClient
+            .storage
+            .from('files')
+            .getPublicUrl(file.storage_path);
+
+        shareLinkInput.value = publicUrl;
+        shareModal.classList.remove('hidden');
+
+        logActivity('share', file.name, 'Generated public link');
+    } catch (e) {
+        console.error('Sharing error:', e);
+        showNotification('Failed to generate sharing link', 'error');
+    }
+}
+
+function closeShareModal() {
+    shareModal.classList.add('hidden');
+    shareStatusText.style.opacity = '0';
+}
+
+function copyShareLink() {
+    shareLinkInput.select();
+    shareLinkInput.setSelectionRange(0, 99999); // For mobile devices
+
+    navigator.clipboard.writeText(shareLinkInput.value).then(() => {
+        shareStatusText.style.opacity = '1';
+        setTimeout(() => {
+            shareStatusText.style.opacity = '0';
+        }, 2000);
+    }).catch(err => {
+        console.error('Copy failed:', err);
+        showNotification('Failed to copy link', 'error');
+    });
 }

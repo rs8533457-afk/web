@@ -466,7 +466,41 @@
             <!-- Supabase SDK -->
             <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-            <script src="script.js"></script>
+            <!-- Share Modal -->
+            <div class="modal hidden" id="shareModal">
+                <div class="modal-overlay" id="shareModalOverlay"></div>
+                <div class="modal-content" style="max-width: 450px;">
+                    <button class="modal-close" id="shareModalClose">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" />
+                        </svg>
+                    </button>
+                    <div class="profile-modal-header">
+                        <h3>Share File</h3>
+                        <p>Anyone with this link can view the file</p>
+                    </div>
+                    <div class="share-link-container"
+                        style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 10px; margin-top: 20px;">
+                        <input type="text" id="shareLinkInput" readonly
+                            style="background: transparent; border: none; color: var(--text-primary); flex: 1; font-size: 14px; outline: none;">
+                        <button id="copyShareLinkBtn" class="btn-icon" title="Copy to Clipboard">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.242a2 2 0 0 0-.602-1.43L16.083 2.57A2 2 0 0 0 14.685 2H10a2 2 0 0 0-2 2z"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                                <path d="M16 18v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </button>
+                    </div>
+                    <p id="shareStatusText"
+                        style="font-size: 12px; color: var(--primary); text-align: center; margin-top: 8px; opacity: 0; transition: opacity 0.3s;">
+                        Copied to clipboard!</p>
+                </div>
+            </div>
 </body>
 
 </html>
