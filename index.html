@@ -11,12 +11,12 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=3.0">
+    <link rel="stylesheet" href="styles.css?v=4.0">
 </head>
 
 <body>
     <video autoplay loop muted playsinline id="bgVideo">
-        <source src="vecteezy_animated-abstract-background-floating-bokeh-lights-bokeh_21047417.mp4" type="video/mp4">
+        <source src="berserk-eclipse.mp4" type="video/mp4">
     </video>
     <div class="stars"></div>
     <div class="stars2"></div>
@@ -250,6 +250,10 @@
                         <span class="nav-icon">📄</span>
                         <span class="nav-text">Documents</span>
                     </a>
+                    <a href="#" class="nav-item" id="navActivity">
+                        <span class="nav-icon">📜</span>
+                        <span class="nav-text">Activity Log</span>
+                    </a>
                 </nav>
 
                 <div class="sidebar-footer">
@@ -346,6 +350,19 @@
                         </div>
                         <div class="files-grid" id="filesGrid">
                             <!-- Files will be dynamically added here -->
+                        </div>
+                    </div>
+                </section>
+
+                <section class="activity-section hidden" id="activitySection">
+                    <div class="container">
+                        <div class="section-header">
+                            <h2 class="section-title">Activity Log</h2>
+                            <button class="btn-text" id="clearActivityBtn"
+                                style="color: var(--text-secondary); font-size: 14px;">Clear Log</button>
+                        </div>
+                        <div class="activity-log glass" id="activityList">
+                            <!-- Activity items will be injected here -->
                         </div>
                     </div>
                 </section>

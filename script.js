@@ -43,6 +43,15 @@ const otpInputs = document.querySelectorAll('.otp-input');
 const verifyOtpBtn = document.getElementById('verifyOtpBtn');
 const resendOtpBtn = document.getElementById('resendOtp');
 
+// Activity Log Elements
+const navActivity = document.getElementById('navActivity');
+const activitySection = document.getElementById('activitySection');
+const activityList = document.getElementById('activityList');
+const clearActivityBtn = document.getElementById('clearActivityBtn');
+const mainFilesSection = document.querySelector('.files-section');
+const statsSection = document.querySelector('.stats-section');
+const uploadSection = document.querySelector('.upload-section');
+
 // File Viewer Elements
 const fileViewerModal = document.getElementById('fileViewerModal');
 const modalOverlay = document.getElementById('modalOverlay');
@@ -62,7 +71,7 @@ let currentFileId = null;
 // IndexedDB Helper
 const filesAppDB = {
     dbName: 'FilesAppDB',
-    version: 2, // Bumped version to force upgrade/create stores
+    version: 3, // Bumped version for activity store
     db: null,
 
     init: function () {
@@ -80,6 +89,9 @@ const filesAppDB = {
                 }
                 if (!db.objectStoreNames.contains('comments')) {
                     db.createObjectStore('comments', { keyPath: 'id' });
+                }
+                if (!db.objectStoreNames.contains('activity')) {
+                    db.createObjectStore('activity', { keyPath: 'id' });
                 }
             };
 
@@ -234,6 +246,33 @@ if (fileSearch) {
         const query = e.target.value.toLowerCase();
         const activeFilter = document.querySelector('.filter-btn.active, .nav-item.active')?.dataset.filter || 'all';
         renderFiles(activeFilter, query);
+    });
+}
+
+// Activity Log Event Listeners
+if (navActivity) {
+    navActivity.addEventListener('click', (e) => {
+        e.preventDefault();
+        showActivityLog();
+    });
+}
+
+if (clearActivityBtn) {
+    clearActivityBtn.addEventListener('click', async () => {
+        if (confirm('Clear entire activity log?')) {
+            try {
+                const activities = await filesAppDB.getAll('activity');
+                for (const act of activities) {
+                    if (act.userId === currentUser.id) {
+                        await filesAppDB.delete('activity', act.id);
+                    }
+                }
+                renderActivityLog();
+                showNotification('Activity log cleared', 'info');
+            } catch (e) {
+                console.error('Error clearing activity:', e);
+            }
+        }
     });
 }
 
@@ -619,6 +658,11 @@ async function handleAddComment(e) {
     try {
         await filesAppDB.add('comments', newComment);
         commentInput.value = '';
+
+        // Log activity
+        const file = userFiles.find(f => f.id == currentFileId);
+        logActivity('comment', file ? file.name : 'Unknown File', `Comment: "${text.substring(0, 20)}..."`);
+
         loadComments(currentFileId);
     } catch (e) {
         console.error('Error adding comment:', e);
@@ -677,6 +721,103 @@ function showDashboard() {
     userName.textContent = currentUser.name;
     loadUserFiles();
     renderFiles();
+    showFilesView(); // Default to files view
+}
+
+function showFilesView() {
+    mainFilesSection.classList.remove('hidden');
+    statsSection.classList.remove('hidden');
+    uploadSection.classList.remove('hidden');
+    activitySection.classList.add('hidden');
+
+    // Deactivate Activity Log nav item
+    navActivity.classList.remove('active');
+}
+
+async function showActivityLog() {
+    mainFilesSection.classList.add('hidden');
+    statsSection.classList.add('hidden');
+    uploadSection.classList.add('hidden');
+    activitySection.classList.remove('hidden');
+
+    // Update nav active state
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    navActivity.classList.add('active');
+
+    renderActivityLog();
+}
+
+async function logActivity(action, fileName, details) {
+    if (!currentUser) return;
+
+    const activity = {
+        id: Date.now() + Math.random(),
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action: action, // 'upload', 'delete', 'download', 'comment'
+        fileName: fileName,
+        details: details,
+        createdAt: new Date().toISOString()
+    };
+
+    try {
+        await filesAppDB.add('activity', activity);
+    } catch (e) {
+        console.error('Error logging activity:', e);
+    }
+}
+
+async function renderActivityLog() {
+    try {
+        const allActivity = await filesAppDB.getAll('activity');
+        const userActivity = allActivity
+            .filter(a => a.userId === currentUser.id)
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        activityList.innerHTML = '';
+
+        if (userActivity.length === 0) {
+            activityList.innerHTML = '<p class="empty-state" style="padding: 40px; text-align: center;">No activity recorded yet.</p>';
+            return;
+        }
+
+        const icons = {
+            'upload': '📤',
+            'delete': '🗑️',
+            'download': '📥',
+            'comment': '💬'
+        };
+
+        const titles = {
+            'upload': 'File Uploaded',
+            'delete': 'File Deleted',
+            'download': 'File Downloaded',
+            'comment': 'Comment Added'
+        };
+
+        userActivity.forEach(act => {
+            const item = document.createElement('div');
+            item.className = 'activity-item';
+
+            const time = new Date(act.createdAt).toLocaleString();
+
+            item.innerHTML = `
+                <div class="activity-icon">${icons[act.action] || '📝'}</div>
+                <div class="activity-content">
+                    <div class="activity-header">
+                        <span class="activity-title">${titles[act.action] || act.action}</span>
+                        <span class="activity-time">${time}</span>
+                    </div>
+                    <div class="activity-details">
+                        <strong>${act.fileName}</strong> ${act.details || ''}
+                    </div>
+                </div>
+            `;
+            activityList.appendChild(item);
+        });
+    } catch (e) {
+        console.error('Error rendering activity:', e);
+    }
 }
 
 
@@ -784,11 +925,11 @@ function saveFile(file) {
             // Save to IndexedDB
             await filesAppDB.add('files', fileData);
 
-            userFiles.push(fileData);
-            // Optional: update localStorage alias if needed, but we rely on DB now
-
             showNotification('File uploaded successfully!', 'success');
             renderFiles();
+
+            // Log activity
+            logActivity('upload', fileData.name, `Size: ${fileData.size}`);
         } catch (e) {
             console.error('Save file error:', e);
             if (e.name === 'QuotaExceededError') {
@@ -927,6 +1068,9 @@ function handleFilter(e) {
     const target = e.currentTarget;
     const filter = target.getAttribute('data-filter') || target.dataset.filter;
 
+    // Switch back to files view if we're in activity log
+    showFilesView();
+
     // Update active state for both header filters and sidebar nav
     document.querySelectorAll('.filter-btn, .nav-item').forEach(btn => {
         if (btn.getAttribute('data-filter') === filter) {
@@ -958,11 +1102,18 @@ function downloadFile(fileId) {
     document.body.removeChild(link);
 
     showNotification('Download started', 'success');
+
+    // Log activity
+    logActivity('download', file.name, `User: ${currentUser.name}`);
 }
 
 async function deleteFile(fileId) {
     if (confirm('Are you sure you want to delete this file?')) {
         try {
+            // Capture file name before deletion
+            const fileToDelete = userFiles.find(f => f.id == fileId);
+            const fileName = fileToDelete ? fileToDelete.name : 'Unknown File';
+
             // Remove from IndexedDB
             await filesAppDB.delete('files', fileId);
 
@@ -971,6 +1122,9 @@ async function deleteFile(fileId) {
 
             renderFiles();
             showNotification('File deleted successfully', 'success');
+
+            // Log activity
+            logActivity('delete', fileName, 'Permanent removal');
         } catch (e) {
             console.error('Error deleting file:', e);
             showNotification('Failed to delete file', 'error');
