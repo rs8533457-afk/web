@@ -158,43 +158,72 @@ async function handleLogin(e) {
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
 
+    console.log('Attempting login for:', email);
+
     try {
         const { data, error } = await supabaseClient.auth.signInWithPassword({
             email,
             password,
         });
 
-        if (error) throw error;
+        if (error) {
+            console.error('Supabase Auth Error:', error);
+            if (error.message.includes('Email not confirmed')) {
+                showNotification('Please confirm your email address before logging in.', 'error');
+            } else {
+                showNotification(error.message || 'Login failed', 'error');
+            }
+            return;
+        }
 
-        if (data.user) {
+        const user = data.user;
+        if (user) {
+            console.log('Login successful, user id:', user.id);
+
             // Check if profile exists
-            let profile = await filesAppDB.get('profiles', data.user.id);
+            let profile = await filesAppDB.get('profiles', user.id);
+            console.log('Profile lookup result:', profile);
 
             // Auto-create profile if missing
             if (!profile) {
-                console.log('Profile missing, creating auto-profile...');
+                console.log('Profile missing, creating auto-profile using metadata...');
                 const newProfile = {
-                    id: data.user.id,
-                    name: data.user.user_metadata?.full_name || data.user.email.split('@')[0],
-                    email: data.user.email
+                    id: user.id,
+                    name: user.user_metadata?.full_name || user.email.split('@')[0],
+                    email: user.email
                 };
-                await supabaseClient.from('profiles').insert([newProfile]);
-                profile = newProfile;
+
+                const { error: insertError } = await supabaseClient
+                    .from('profiles')
+                    .insert([newProfile]);
+
+                if (insertError) {
+                    console.warn('Auto-profile creation failed:', insertError);
+                    // Use metadata as fallback if DB insert fails (RLS/etc)
+                    profile = newProfile;
+                } else {
+                    profile = newProfile;
+                }
             }
 
             currentUser = {
-                id: data.user.id,
+                id: user.id,
                 name: profile.name,
-                email: data.user.email
+                email: user.email
             };
+
+            console.log('Current user state set:', currentUser);
             showNotification('Welcome back!', 'success');
             showDashboard();
             updateUserAvatar();
             setupRealtimeSubscriptions();
+        } else {
+            console.error('Login returned no user data');
+            showNotification('Authentication failed', 'error');
         }
     } catch (error) {
-        console.error('Login error:', error);
-        showNotification(error.message || 'Login failed', 'error');
+        console.error('Critical Login Error:', error);
+        showNotification('An unexpected error occurred during login', 'error');
     }
 }
 
@@ -203,6 +232,8 @@ async function handleSignup(e) {
     const name = document.getElementById('signupName').value;
     const email = document.getElementById('signupEmail').value;
     const password = document.getElementById('signupPassword').value;
+
+    console.log('Attempting signup for:', email);
 
     try {
         const { data, error } = await supabaseClient.auth.signUp({
@@ -215,19 +246,27 @@ async function handleSignup(e) {
             }
         });
 
-        if (error) throw error;
+        if (error) {
+            console.error('Supabase Signup Error:', error);
+            throw error;
+        }
 
         if (data.user) {
+            console.log('Signup successful, user id:', data.user.id);
             // Create profile
-            await supabaseClient.from('profiles').insert([
+            const { error: profileError } = await supabaseClient.from('profiles').insert([
                 { id: data.user.id, name, email }
             ]);
+
+            if (profileError) {
+                console.warn('Initial profile creation failed (might exist or RLS):', profileError);
+            }
 
             showNotification('Signup successful! You can now log in.', 'success');
             showLogin();
         }
     } catch (error) {
-        console.error('Signup error:', error);
+        console.error('Critical Signup Error:', error);
         showNotification(error.message || 'Signup failed', 'error');
     }
 }
@@ -251,34 +290,56 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Check authentication
 async function checkAuth() {
-    const { data: { session }, error } = await supabaseClient.auth.getSession();
+    console.log('Checking auth status...');
+    try {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
 
-    if (session && session.user) {
-        // Fetch profile
-        let profile = await filesAppDB.get('profiles', session.user.id);
+        if (error) throw error;
 
-        // Auto-create profile if missing (resilience)
-        if (!profile) {
-            console.log('Restoring missing profile for session user...');
-            const newProfile = {
+        if (session && session.user) {
+            console.log('Valid session found for:', session.user.email);
+
+            // Fetch profile
+            let profile = await filesAppDB.get('profiles', session.user.id);
+            console.log('Initial profile lookup:', profile);
+
+            // Auto-create profile if missing (resilience)
+            if (!profile) {
+                console.log('Restoring missing profile for session user...');
+                const newProfile = {
+                    id: session.user.id,
+                    name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
+                    email: session.user.email
+                };
+
+                const { error: insertError } = await supabaseClient
+                    .from('profiles')
+                    .insert([newProfile]);
+
+                if (insertError) {
+                    console.warn('Profile auto-creation failed during checkAuth:', insertError);
+                    profile = newProfile; // Fallback to metadata
+                } else {
+                    profile = newProfile;
+                }
+            }
+
+            currentUser = {
                 id: session.user.id,
-                name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
+                name: profile.name,
                 email: session.user.email
             };
-            await supabaseClient.from('profiles').insert([newProfile]);
-            profile = newProfile;
-        }
 
-        currentUser = {
-            id: session.user.id,
-            name: profile.name,
-            email: session.user.email
-        };
-        updateUserAvatar();
-        showDashboard();
-        setupRealtimeSubscriptions(); // Start listening for changes
-    }
-    else {
+            console.log('User session restored:', currentUser);
+            updateUserAvatar();
+            showDashboard();
+            setupRealtimeSubscriptions();
+        } else {
+            console.log('No active session found.');
+            showLogin();
+        }
+    } catch (error) {
+        console.error('Session check error:', error);
         showLogin();
     }
 }
