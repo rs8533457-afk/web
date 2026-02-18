@@ -8,7 +8,7 @@ let pendingUser = null; // Store user temporarily during OTP phase
 const EMAILJS_CONFIG = {
     SERVICE_ID: 'service_6lse30k',
     TEMPLATE_ID: 'template_iapqf56',
-    PUBLIC_KEY: 'V981gYEeDKVzfRA2'
+    PUBLIC_KEY: 'lSnUB-d07Mi54Vvcb'
 };
 
 // Initialize EmailJS
