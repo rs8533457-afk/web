@@ -23,7 +23,10 @@ const supabaseClient = createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.ANON_KE
 
 // Initialize EmailJS
 if (typeof emailjs !== 'undefined') {
+    console.log('EmailJS SDK detected, initializing...');
     emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
+} else {
+    console.error('EmailJS SDK NOT detected! Make sure the script is loaded in index.html');
 }
 
 // Updated filesAppDB to use Supabase
@@ -270,23 +273,42 @@ function generateOtp() {
 }
 
 async function sendOtpEmail(email, name, otp) {
-    return emailjs.send(EMAILJS_CONFIG.SERVICE_ID, EMAILJS_CONFIG.TEMPLATE_ID, {
-        to_name: name,
-        to_email: email,
-        otp_code: otp,
-        reply_to: 'noreply@filevault.com'
-    });
+    console.log(`Attempting to send OTP to ${email} via EmailJS...`);
+    try {
+        const response = await emailjs.send(EMAILJS_CONFIG.SERVICE_ID, EMAILJS_CONFIG.TEMPLATE_ID, {
+            to_name: name,
+            to_email: email,
+            otp_code: otp,
+            reply_to: 'noreply@filevault.com'
+        });
+        console.log('EmailJS Success Response:', response);
+        return response;
+    } catch (error) {
+        console.error('EmailJS Send Error:', error);
+        throw error;
+    }
 }
 
 function showOtpPage(email) {
+    console.log('Switching to OTP view for:', email);
     signupPage.classList.add('hidden');
     loginPage.classList.add('hidden');
     otpPage.classList.remove('hidden');
-    document.getElementById('otpSubtitle').textContent = `We've sent a 6-digit code to ${email}`;
+
+    const subtitle = document.getElementById('otpSubtitle');
+    if (subtitle) {
+        subtitle.textContent = `We've sent a 6-digit code to ${email}`;
+    } else {
+        console.error('otpSubtitle element not found!');
+    }
 
     // Reset OTP inputs
-    otpInputs.forEach(input => input.value = '');
-    otpInputs[0].focus();
+    if (otpInputs && otpInputs.length > 0) {
+        otpInputs.forEach(input => input.value = '');
+        otpInputs[0].focus();
+    } else {
+        console.error('otpInputs not found or empty!');
+    }
 }
 
 async function handleVerifyOtp() {
