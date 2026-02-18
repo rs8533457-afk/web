@@ -160,18 +160,29 @@ async function handleLogin(e) {
 
         if (data.user) {
             // Check if profile exists
-            const profile = await filesAppDB.get('profiles', data.user.id);
-            if (profile) {
-                currentUser = {
+            let profile = await filesAppDB.get('profiles', data.user.id);
+
+            // Auto-create profile if missing
+            if (!profile) {
+                console.log('Profile missing, creating auto-profile...');
+                const newProfile = {
                     id: data.user.id,
-                    name: profile.name,
+                    name: data.user.user_metadata?.full_name || data.user.email.split('@')[0],
                     email: data.user.email
                 };
-                showNotification('Welcome back!', 'success');
-                showDashboard();
-            } else {
-                showNotification('Profile not found', 'error');
+                await supabaseClient.from('profiles').insert([newProfile]);
+                profile = newProfile;
             }
+
+            currentUser = {
+                id: data.user.id,
+                name: profile.name,
+                email: data.user.email
+            };
+            showNotification('Welcome back!', 'success');
+            showDashboard();
+            updateUserAvatar();
+            setupRealtimeSubscriptions();
         }
     } catch (error) {
         console.error('Login error:', error);
@@ -189,6 +200,11 @@ async function handleSignup(e) {
         const { data, error } = await supabaseClient.auth.signUp({
             email,
             password,
+            options: {
+                data: {
+                    full_name: name
+                }
+            }
         });
 
         if (error) throw error;
@@ -231,20 +247,30 @@ async function checkAuth() {
 
     if (session && session.user) {
         // Fetch profile
-        const profile = await filesAppDB.get('profiles', session.user.id);
-        if (profile) {
-            currentUser = {
+        let profile = await filesAppDB.get('profiles', session.user.id);
+
+        // Auto-create profile if missing (resilience)
+        if (!profile) {
+            console.log('Restoring missing profile for session user...');
+            const newProfile = {
                 id: session.user.id,
-                name: profile.name,
+                name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
                 email: session.user.email
             };
-            updateUserAvatar();
-            showDashboard();
-            setupRealtimeSubscriptions(); // Start listening for changes
-        } else {
-            showLogin();
+            await supabaseClient.from('profiles').insert([newProfile]);
+            profile = newProfile;
         }
-    } else {
+
+        currentUser = {
+            id: session.user.id,
+            name: profile.name,
+            email: session.user.email
+        };
+        updateUserAvatar();
+        showDashboard();
+        setupRealtimeSubscriptions(); // Start listening for changes
+    }
+    else {
         showLogin();
     }
 }
