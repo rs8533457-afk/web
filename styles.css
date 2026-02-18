@@ -167,6 +167,95 @@ body {
     }
 }
 
+/* ===== Background Blobs ===== */
+.bg-blobs {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+    overflow: hidden;
+    pointer-events: none;
+    filter: blur(80px);
+}
+
+.blob {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    background: var(--primary);
+    opacity: 0.2;
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+    animation: morph 20s linear infinite alternate, drift 30s ease-in-out infinite;
+}
+
+.blob-1 {
+    top: -10%;
+    left: -10%;
+    background: #ff0040;
+    animation-duration: 25s, 35s;
+}
+
+.blob-2 {
+    bottom: -10%;
+    right: -10%;
+    background: #990000;
+    animation-duration: 30s, 40s;
+    animation-delay: -5s;
+}
+
+.blob-3 {
+    top: 40%;
+    left: 40%;
+    width: 300px;
+    height: 300px;
+    background: #cc0000;
+    animation-duration: 18s, 28s;
+    animation-delay: -10s;
+}
+
+.blob-4 {
+    bottom: 20%;
+    left: 10%;
+    width: 350px;
+    height: 350px;
+    background: #ff4d4d;
+    animation-duration: 22s, 32s;
+    animation-delay: -15s;
+}
+
+@keyframes morph {
+    0% {
+        border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+    }
+
+    50% {
+        border-radius: 60% 40% 30% 70% / 50% 60% 40% 60%;
+    }
+
+    100% {
+        border-radius: 70% 30% 50% 60% / 40% 40% 70% 50%;
+    }
+}
+
+@keyframes drift {
+
+    0%,
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+
+    33% {
+        transform: translate(100px, 100px) rotate(90deg);
+    }
+
+    66% {
+        transform: translate(-50px, 150px) rotate(180deg);
+    }
+}
+
+
 /* ===== Utility Classes ===== */
 .hidden {
     display: none !important;
