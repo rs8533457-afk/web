@@ -299,37 +299,51 @@ function startOtpVerification(user, isSignup = false) {
     currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Send Real OTP (falls back to simulated if key is missing)
+    console.log('Verification started for:', user.email);
     sendEmailOTP(user, currentOtp);
 
     showOTPPage();
 }
 
 async function sendEmailOTP(user, otp) {
-    if (EMAILJS_CONFIG.PUBLIC_KEY === 'YOUR_PUBLIC_KEY') {
-        console.warn('EmailJS Public Key is missing. Falling back to simulated OTP.');
-        showNotification(`Public Key Missing! Simulated OTP: ${otp}`, 'warning');
+    if (typeof emailjs === 'undefined') {
+        console.error('EmailJS SDK not loaded');
+        showNotification('Email Security Error: SDK not loaded. Refreshing might help.', 'error');
         return;
     }
 
     try {
         const templateParams = {
-            to_name: user.name,
+            to_name: user.name || 'User',
             to_email: user.email,
             otp_code: otp,
             reply_to: 'noreply@filevault.com'
         };
 
-        await emailjs.send(
+        console.log('Attempting to send OTP via EmailJS...', {
+            service: EMAILJS_CONFIG.SERVICE_ID,
+            template: EMAILJS_CONFIG.TEMPLATE_ID,
+            email: user.email
+        });
+
+        const response = await emailjs.send(
             EMAILJS_CONFIG.SERVICE_ID,
             EMAILJS_CONFIG.TEMPLATE_ID,
             templateParams,
             EMAILJS_CONFIG.PUBLIC_KEY
         );
 
+        console.log('EmailJS Success:', response.status, response.text);
         showNotification('OTP sent to your email!', 'success');
     } catch (error) {
-        console.error('EmailJS error:', error);
-        showNotification('Failed to send email. Check console for details.', 'error');
+        console.error('EmailJS Error Detail:', error);
+
+        // Show a more descriptive error to the user
+        let errorMsg = 'Failed to send email.';
+        if (error.text) errorMsg += ' Error: ' + error.text;
+        else if (error.message) errorMsg += ' Error: ' + error.message;
+
+        showNotification(errorMsg, 'error');
     }
 }
 
