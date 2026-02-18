@@ -11,12 +11,78 @@ const EMAILJS_CONFIG = {
     PUBLIC_KEY: 'lSnUB-d07Mi54Vvcb'
 };
 
-// Initialize EmailJS
-(function () {
-    if (EMAILJS_CONFIG.PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') {
-        emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
+// Supabase Configuration
+const SUPABASE_CONFIG = {
+    URL: 'https://nfpwusbwlycfgxgatolv.supabase.co',
+    ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mcHd1c2J3bHljZmd4Z2F0b2x2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzMzM0NjYsImV4cCI6MjA4NjkwOTQ2Nn0.Fl1zJnRNzHR_kmpl6ZpHyKxVXY7lTBBFecKj3QBcfQ8'
+};
+
+// Initialize Supabase Client
+const { createClient } = supabase;
+const supabaseClient = createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.ANON_KEY);
+
+// Updated filesAppDB to use Supabase
+const filesAppDB = {
+    getAll: async function (storeName) {
+        if (!currentUser) return [];
+        try {
+            const { data, error } = await supabaseClient
+                .from(storeName)
+                .select('*')
+                .eq('user_id', currentUser.id);
+
+            if (error) throw error;
+            return data || [];
+        } catch (e) {
+            console.error(`Error fetching from ${storeName}:`, e);
+            return [];
+        }
+    },
+
+    add: async function (storeName, item) {
+        try {
+            const { data, error } = await supabaseClient
+                .from(storeName)
+                .upsert(item);
+
+            if (error) throw error;
+            return data;
+        } catch (e) {
+            console.error(`Error adding to ${storeName}:`, e);
+            throw e;
+        }
+    },
+
+    delete: async function (storeName, id) {
+        try {
+            const { error } = await supabaseClient
+                .from(storeName)
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+        } catch (e) {
+            console.error(`Error deleting from ${storeName}:`, e);
+            throw e;
+        }
+    },
+
+    get: async function (storeName, key, keyName = 'id') {
+        try {
+            const { data, error } = await supabaseClient
+                .from(storeName)
+                .select('*')
+                .eq(keyName, key)
+                .single();
+
+            if (error && error.code !== 'PGRST116') throw error; // PGRST116 is code for "no rows returned"
+            return data;
+        } catch (e) {
+            console.error(`Error getting from ${storeName}:`, e);
+            return null;
+        }
     }
-})();
+};
 
 // DOM Elements
 const loginPage = document.getElementById('loginPage');
@@ -66,144 +132,116 @@ const commentsList = document.getElementById('commentsList');
 const commentForm = document.getElementById('commentForm');
 const commentInput = document.getElementById('commentInput');
 
+// Profile Elements
+const profileModal = document.getElementById('profileModal');
+const profileModalOverlay = document.getElementById('profileModalOverlay');
+const profileModalClose = document.getElementById('profileModalClose');
+const profileTrigger = document.getElementById('profileTrigger');
+const profileForm = document.getElementById('profileForm');
+const profileNameInput = document.getElementById('profileName');
+const profileEmailInput = document.getElementById('profileEmail');
+const userAvatarSmall = document.getElementById('userAvatarSmall');
+
 let currentFileId = null;
 
-// IndexedDB Helper
-const filesAppDB = {
-    dbName: 'FilesAppDB',
-    version: 3, // Bumped version for activity store
-    db: null,
+// Auth Migration to Supabase
+async function handleLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
 
-    init: function () {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(this.dbName, this.version);
-
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                // Create stores if they don't exist
-                if (!db.objectStoreNames.contains('users')) {
-                    db.createObjectStore('users', { keyPath: 'email' });
-                }
-                if (!db.objectStoreNames.contains('files')) {
-                    db.createObjectStore('files', { keyPath: 'id' });
-                }
-                if (!db.objectStoreNames.contains('comments')) {
-                    db.createObjectStore('comments', { keyPath: 'id' });
-                }
-                if (!db.objectStoreNames.contains('activity')) {
-                    db.createObjectStore('activity', { keyPath: 'id' });
-                }
-            };
-
-            request.onsuccess = (event) => {
-                this.db = event.target.result;
-                console.log('IndexedDB initialized');
-                resolve(this.db);
-            };
-
-            request.onerror = (event) => {
-                console.error('IndexedDB error:', event.target.error);
-                showNotification('Database Error: ' + event.target.error.message, 'error');
-                reject(event.target.error);
-            };
-        });
-    },
-
-    getAll: function (storeName) {
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([storeName], 'readonly');
-            const store = transaction.objectStore(storeName);
-            const request = store.getAll();
-
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
-    },
-
-    add: function (storeName, item) {
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            const request = store.put(item);
-
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
-    },
-
-    delete: function (storeName, key) {
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            const request = store.delete(key);
-
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
-        });
-    },
-
-    get: function (storeName, key) {
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([storeName], 'readonly');
-            const store = transaction.objectStore(storeName);
-            const request = store.get(key);
-
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
-    }
-};
-
-async function loadUserFiles() {
     try {
-        const allFiles = await filesAppDB.getAll('files');
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email,
+            password,
+        });
 
-        if (currentUser) {
-            userFiles = allFiles.filter(f => f.userId === currentUser.id);
-        } else {
-            console.warn('No current user in loadUserFiles');
-            userFiles = [];
+        if (error) throw error;
+
+        if (data.user) {
+            // Check if profile exists
+            const profile = await filesAppDB.get('profiles', data.user.id);
+            if (profile) {
+                currentUser = {
+                    id: data.user.id,
+                    name: profile.name,
+                    email: data.user.email
+                };
+                showNotification('Welcome back!', 'success');
+                showDashboard();
+            } else {
+                showNotification('Profile not found', 'error');
+            }
         }
-
-        renderFiles();
-        updateDashboardStats();
-    } catch (e) {
-        console.error('Error loading files:', e);
-        showNotification('Failed to load files: ' + e.message, 'error');
-        userFiles = [];
-        renderFiles();
-        updateDashboardStats();
+    } catch (error) {
+        console.error('Login error:', error);
+        showNotification(error.message || 'Login failed', 'error');
     }
+}
+
+async function handleSignup(e) {
+    e.preventDefault();
+    const name = document.getElementById('signupName').value;
+    const email = document.getElementById('signupEmail').value;
+    const password = document.getElementById('signupPassword').value;
+
+    try {
+        const { data, error } = await supabaseClient.auth.signUp({
+            email,
+            password,
+        });
+
+        if (error) throw error;
+
+        if (data.user) {
+            // Create profile
+            await supabaseClient.from('profiles').insert([
+                { id: data.user.id, name, email }
+            ]);
+
+            showNotification('Signup successful! You can now log in.', 'success');
+            showLogin();
+        }
+    } catch (error) {
+        console.error('Signup error:', error);
+        showNotification(error.message || 'Signup failed', 'error');
+    }
+}
+
+async function handleLogout() {
+    await supabaseClient.auth.signOut();
+    currentUser = null;
+    showNotification('Logged out successfully', 'success');
+    showLogin();
 }
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        await filesAppDB.init();
-        await checkAuth(); // Make checkAuth async or handle promise
-
+        await checkAuth();
     } catch (error) {
         console.error('Failed to initialize app:', error);
-        showNotification('Failed to initialize storage', 'error');
+        showNotification('Failed to initialize application', 'error');
     }
 });
 
 // Check authentication
 async function checkAuth() {
-    const user = localStorage.getItem('currentUser');
-    if (user) {
-        currentUser = JSON.parse(user);
-        // Verify user still exists in DB (optional, but good practice)
-        try {
-            const dbUser = await filesAppDB.get('users', currentUser.email);
-            if (dbUser) {
-                showDashboard();
-            } else {
-                // User in local storage but not in DB (cleared?)
-                showLogin();
-            }
-        } catch (e) {
-            console.error('Auth check failed', e);
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+    if (session && session.user) {
+        // Fetch profile
+        const profile = await filesAppDB.get('profiles', session.user.id);
+        if (profile) {
+            currentUser = {
+                id: session.user.id,
+                name: profile.name,
+                email: session.user.email
+            };
+            updateUserAvatar();
+            showDashboard();
+            setupRealtimeSubscriptions(); // Start listening for changes
+        } else {
             showLogin();
         }
     } else {
@@ -261,16 +299,18 @@ if (clearActivityBtn) {
     clearActivityBtn.addEventListener('click', async () => {
         if (confirm('Clear entire activity log?')) {
             try {
-                const activities = await filesAppDB.getAll('activity');
-                for (const act of activities) {
-                    if (act.userId === currentUser.id) {
-                        await filesAppDB.delete('activity', act.id);
-                    }
-                }
+                const { error } = await supabaseClient
+                    .from('activity')
+                    .delete()
+                    .eq('user_id', currentUser.id);
+
+                if (error) throw error;
+
                 renderActivityLog();
                 showNotification('Activity log cleared', 'info');
             } catch (e) {
                 console.error('Error clearing activity:', e);
+                showNotification('Failed to clear activity log', 'error');
             }
         }
     });
@@ -294,200 +334,31 @@ showLoginBtn.addEventListener('click', (e) => {
 // Comments
 commentForm.addEventListener('submit', handleAddComment);
 
+// Profile
+if (profileTrigger) profileTrigger.addEventListener('click', openProfileModal);
+if (profileModalOverlay) profileModalOverlay.addEventListener('click', closeProfileModal);
+if (profileModalClose) profileModalClose.addEventListener('click', closeProfileModal);
+if (profileForm) profileForm.addEventListener('submit', handleUpdateProfile);
 
-async function handleLogin(e) {
-    e.preventDefault();
 
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-
+// Updated File Functions for Supabase
+async function loadUserFiles() {
     try {
-        const users = await filesAppDB.getAll('users');
-        const user = users.find(u => u.email === email && u.password === password);
+        const { data, error } = await supabaseClient
+            .from('files')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .order('uploaded_at', { ascending: false });
 
-        if (user) {
-            startOtpVerification(user);
-            loginForm.reset();
-        } else {
-            showNotification('Invalid email or password', 'error');
-        }
-    } catch (error) {
-        console.error('Login error:', error);
-        showNotification('Login failed', 'error');
+        if (error) throw error;
+        userFiles = data || [];
+        renderFiles();
+        updateDashboardStats();
+    } catch (e) {
+        console.error('Error loading files:', e);
+        showNotification('Failed to load files', 'error');
     }
 }
-
-async function handleSignup(e) {
-    e.preventDefault();
-
-    const name = document.getElementById('signupName').value;
-    const email = document.getElementById('signupEmail').value;
-    const password = document.getElementById('signupPassword').value;
-
-    try {
-        // Check if email already exists
-        const existingUser = await filesAppDB.get('users', email);
-        if (existingUser) {
-            showNotification('Email already registered', 'error');
-            return;
-        }
-
-        // Create new user (pending until OTP)
-        const newUser = {
-            id: Date.now(),
-            name,
-            email,
-            password,
-            createdAt: new Date().toISOString()
-        };
-
-        startOtpVerification(newUser, true);
-        signupForm.reset();
-    } catch (error) {
-        console.error('Signup error:', error);
-        showNotification('Signup failed', 'error');
-    }
-}
-
-// OTP Logic
-function startOtpVerification(user, isSignup = false) {
-    pendingUser = user;
-    currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Send Real OTP (falls back to simulated if key is missing)
-    console.log('Verification started for:', user.email);
-    sendEmailOTP(user, currentOtp);
-
-    showOTPPage();
-}
-
-async function sendEmailOTP(user, otp) {
-    if (typeof emailjs === 'undefined') {
-        console.error('EmailJS SDK not loaded');
-        showNotification('Email Security Error: SDK not loaded. Refreshing might help.', 'error');
-        return;
-    }
-
-    try {
-        const templateParams = {
-            to_name: user.name || 'User',
-            to_email: user.email,
-            otp_code: otp,
-            reply_to: 'noreply@filevault.com'
-        };
-
-        console.log('Template Params:', templateParams);
-        console.log('EmailJS Object:', typeof emailjs !== 'undefined' ? 'Loaded' : 'Missing');
-
-        console.log('Attempting to send OTP via EmailJS...', {
-            service: EMAILJS_CONFIG.SERVICE_ID,
-            template: EMAILJS_CONFIG.TEMPLATE_ID,
-            userEmail: user.email,
-            publicKey: EMAILJS_CONFIG.PUBLIC_KEY.substring(0, 4) + '...'
-        });
-
-        const response = await emailjs.send(
-            EMAILJS_CONFIG.SERVICE_ID,
-            EMAILJS_CONFIG.TEMPLATE_ID,
-            templateParams,
-            EMAILJS_CONFIG.PUBLIC_KEY
-        );
-
-        console.log('EmailJS Success:', response.status, response.text);
-        showNotification('OTP sent to your email!', 'success');
-    } catch (error) {
-        console.error('EmailJS Error Detail:', error);
-
-        // Show a more descriptive error to the user
-        let errorMsg = 'Failed to send email.';
-        if (error.text) errorMsg += ' Error: ' + error.text;
-        else if (error.message) errorMsg += ' Error: ' + error.message;
-
-        showNotification(errorMsg, 'error');
-    }
-}
-
-function handleOTPVerification() {
-    const enteredOtp = Array.from(otpInputs).map(input => input.value).join('');
-
-    if (enteredOtp.length !== 6) {
-        showNotification('Please enter all 6 digits', 'error');
-        return;
-    }
-
-    if (enteredOtp === currentOtp) {
-        completeAuth();
-    } else {
-        showNotification('Invalid code. Please try again.', 'error');
-        // Clear inputs on failure
-        otpInputs.forEach(input => input.value = '');
-        otpInputs[0].focus();
-    }
-}
-
-async function completeAuth() {
-    try {
-        // If it was a signup, we need to add the user to the database now
-        // We know it's a "signup" if the user isn't in the DB yet or we flag it
-        // A simpler way: just try to put it. 
-        await filesAppDB.add('users', pendingUser);
-
-        currentUser = pendingUser;
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-
-        showNotification('Verification successful!', 'success');
-        showDashboard();
-
-        // Cleanup
-        pendingUser = null;
-        currentOtp = null;
-        otpInputs.forEach(input => input.value = '');
-    } catch (error) {
-        console.error('Auth completion error:', error);
-        showNotification('Failed to complete authentication', 'error');
-    }
-}
-
-function handleResendOTP(e) {
-    if (e) e.preventDefault();
-    if (!pendingUser) return;
-
-    currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    console.log(`%c[OTP SYSTEM] New Code for ${pendingUser.email}: ${currentOtp}`, 'color: #10b981; font-weight: bold; font-size: 14px;');
-    sendEmailOTP(pendingUser, currentOtp);
-
-    // Clear and focus
-    otpInputs.forEach(input => input.value = '');
-    otpInputs[0].focus();
-}
-
-// Initialize OTP Inputs Behavior
-otpInputs.forEach((input, index) => {
-    input.addEventListener('keyup', (e) => {
-        if (e.key >= 0 && e.key <= 9) {
-            if (index < otpInputs.length - 1) {
-                otpInputs[index + 1].focus();
-            }
-        } else if (e.key === 'Backspace') {
-            if (index > 0) {
-                otpInputs[index - 1].focus();
-            }
-        }
-    });
-
-    // Handle paste
-    input.addEventListener('paste', (e) => {
-        const data = e.clipboardData.getData('text');
-        if (data.length === 6 && /^\d+$/.test(data)) {
-            const digits = data.split('');
-            otpInputs.forEach((inp, idx) => inp.value = digits[idx]);
-            handleOTPVerification();
-        }
-    });
-});
-
-verifyOtpBtn.addEventListener('click', handleOTPVerification);
-resendOtpBtn.addEventListener('click', handleResendOTP);
 
 
 
@@ -543,7 +414,7 @@ function createFileCard(file, index) {
 // ... (keep handleFilter, downloadFile, deleteFile) ...
 
 // File Viewer Functions
-function openFileViewer(fileId) {
+async function openFileViewer(fileId) {
     const file = userFiles.find(f => f.id == fileId);
     if (!file) return;
 
@@ -557,19 +428,23 @@ function openFileViewer(fileId) {
     imagePreview.classList.add('hidden');
     iconPreview.classList.add('hidden');
 
+    // Get public URL for preview
+    const { data: { publicUrl } } = supabaseClient
+        .storage
+        .from('files')
+        .getPublicUrl(file.storage_path);
+
     // Show appropriate preview
-    if (file.type === 'video' && file.data) {
-        videoPlayer.src = file.data;
+    if (file.type === 'video') {
+        videoPlayer.src = publicUrl;
         videoPlayer.classList.remove('hidden');
-        // Auto-play videos
         videoPlayer.play().catch(e => console.log('Autoplay prevented'));
-    } else if (file.type === 'image' && file.data) {
-        imagePreview.src = file.data;
+    } else if (file.type === 'image') {
+        imagePreview.src = publicUrl;
         imagePreview.classList.remove('hidden');
     } else {
         iconPreview.innerHTML = file.thumbnail;
         iconPreview.classList.remove('hidden');
-        // Set color based on type
         iconPreview.style.color = '#a1a1aa';
     }
 
@@ -588,41 +463,39 @@ function closeFileViewer() {
 }
 
 // Commenting System
-// Commenting System
 async function loadComments(fileId) {
     try {
-        const allComments = await filesAppDB.getAll('comments');
-        const fileComments = allComments.filter(c => c.fileId == fileId);
+        const { data: fileComments, error } = await supabaseClient
+            .from('comments')
+            .select('*')
+            .eq('file_id', fileId)
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
 
         commentsList.innerHTML = '';
 
-        if (fileComments.length === 0) {
+        if (!fileComments || fileComments.length === 0) {
             commentsList.innerHTML = '<p class="empty-state" style="font-size: 14px; padding: 20px;">No comments yet. Be the first!</p>';
             return;
         }
-
-        fileComments.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
         fileComments.forEach(comment => {
             const commentEl = document.createElement('div');
             commentEl.className = 'comment-item';
 
-            // Check if current user can delete (owner of comment or owner of file)
             const file = userFiles.find(f => f.id == fileId);
-            const canDelete = comment.userId === currentUser.id || (file && file.userId === currentUser.id);
-            const deleteBtn = canDelete ? `<span class="comment-delete" onclick="deleteComment(${comment.id})">Delete</span>` : '';
+            const canDelete = comment.user_id === currentUser.id || (file && file.user_id === currentUser.id);
+            const deleteBtn = canDelete ? `<span class="comment-delete" onclick="deleteComment('${comment.id}')">Delete</span>` : '';
 
-            // Initial for avatar
-            const initial = comment.userName.charAt(0).toUpperCase();
-
-            // Format date
-            const date = new Date(comment.createdAt).toLocaleDateString();
+            const initial = (comment.user_name || 'U').charAt(0).toUpperCase();
+            const date = new Date(comment.created_at).toLocaleDateString();
 
             commentEl.innerHTML = `
                 <div class="comment-avatar">${initial}</div>
                 <div class="comment-content">
                     <div class="comment-header">
-                        <span class="comment-name">${comment.userName}</span>
+                        <span class="comment-name">${comment.user_name}</span>
                         <span class="comment-date">${date} ${deleteBtn}</span>
                     </div>
                     <div class="comment-text">${comment.text}</div>
@@ -632,7 +505,6 @@ async function loadComments(fileId) {
             commentsList.appendChild(commentEl);
         });
 
-        // Scroll to bottom
         commentsList.scrollTop = commentsList.scrollHeight;
     } catch (e) {
         console.error('Error loading comments:', e);
@@ -646,20 +518,25 @@ async function handleAddComment(e) {
     const text = commentInput.value.trim();
     if (!text) return;
 
+    const commentId = Date.now().toString();
     const newComment = {
-        id: Date.now(),
-        fileId: currentFileId,
-        userId: currentUser.id,
-        userName: currentUser.name,
+        id: commentId,
+        file_id: currentFileId,
+        user_id: currentUser.id,
+        user_name: currentUser.name,
         text: text,
-        createdAt: new Date().toISOString()
+        created_at: new Date().toISOString()
     };
 
     try {
-        await filesAppDB.add('comments', newComment);
+        const { error } = await supabaseClient
+            .from('comments')
+            .insert([newComment]);
+
+        if (error) throw error;
+
         commentInput.value = '';
 
-        // Log activity
         const file = userFiles.find(f => f.id == currentFileId);
         logActivity('comment', file ? file.name : 'Unknown File', `Comment: "${text.substring(0, 20)}..."`);
 
@@ -751,17 +628,21 @@ async function logActivity(action, fileName, details) {
     if (!currentUser) return;
 
     const activity = {
-        id: Date.now() + Math.random(),
-        userId: currentUser.id,
-        userName: currentUser.name,
-        action: action, // 'upload', 'delete', 'download', 'comment'
-        fileName: fileName,
+        id: (Date.now() + Math.random()).toString(),
+        user_id: currentUser.id,
+        user_name: currentUser.name,
+        action: action,
+        file_name: fileName,
         details: details,
-        createdAt: new Date().toISOString()
+        created_at: new Date().toISOString()
     };
 
     try {
-        await filesAppDB.add('activity', activity);
+        const { error } = await supabaseClient
+            .from('activity')
+            .insert([activity]);
+
+        if (error) throw error;
     } catch (e) {
         console.error('Error logging activity:', e);
     }
@@ -769,14 +650,17 @@ async function logActivity(action, fileName, details) {
 
 async function renderActivityLog() {
     try {
-        const allActivity = await filesAppDB.getAll('activity');
-        const userActivity = allActivity
-            .filter(a => a.userId === currentUser.id)
-            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const { data: userActivity, error } = await supabaseClient
+            .from('activity')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
 
         activityList.innerHTML = '';
 
-        if (userActivity.length === 0) {
+        if (!userActivity || userActivity.length === 0) {
             activityList.innerHTML = '<p class="empty-state" style="padding: 40px; text-align: center;">No activity recorded yet.</p>';
             return;
         }
@@ -799,7 +683,7 @@ async function renderActivityLog() {
             const item = document.createElement('div');
             item.className = 'activity-item';
 
-            const time = new Date(act.createdAt).toLocaleString();
+            const time = new Date(act.created_at).toLocaleString();
 
             item.innerHTML = `
                 <div class="activity-icon">${icons[act.action] || '📝'}</div>
@@ -809,7 +693,7 @@ async function renderActivityLog() {
                         <span class="activity-time">${time}</span>
                     </div>
                     <div class="activity-details">
-                        <strong>${act.fileName}</strong> ${act.details || ''}
+                        <strong>${act.file_name || ''}</strong> ${act.details || ''}
                     </div>
                 </div>
             `;
@@ -842,13 +726,6 @@ function togglePassword(inputId) {
 
 
 
-function handleLogout() {
-    currentUser = null;
-    localStorage.removeItem('currentUser');
-    showNotification('Logged out successfully', 'success');
-    showLogin();
-}
-
 // File upload functions
 function handleDragOver(e) {
     e.preventDefault();
@@ -872,80 +749,97 @@ function handleFileSelect(e) {
     handleFiles(files);
 }
 
-function handleFiles(files) {
+async function handleFiles(files) {
     if (files.length === 0) return;
 
     // Show progress
     uploadProgress.classList.remove('hidden');
 
     const fileArray = Array.from(files);
-    let uploadedCount = 0;
 
-    fileArray.forEach((file, index) => {
-        // Simulate upload with timeout
-        setTimeout(() => {
-            saveFile(file);
-            uploadedCount++;
-
-            const progress = (uploadedCount / fileArray.length) * 100;
+    for (const [index, file] of fileArray.entries()) {
+        try {
+            await saveFile(file);
+            const progress = ((index + 1) / fileArray.length) * 100;
             progressFill.style.width = `${progress}%`;
-            progressText.textContent = `Uploading... ${uploadedCount}/${fileArray.length}`;
+            progressText.textContent = `Uploading... ${index + 1}/${fileArray.length}`;
+        } catch (error) {
+            console.error(`Error uploading ${file.name}:`, error);
+        }
+    }
 
-            if (uploadedCount === fileArray.length) {
-                setTimeout(() => {
-                    uploadProgress.classList.add('hidden');
-                    progressFill.style.width = '0%';
-                    showNotification(`${fileArray.length} file(s) uploaded successfully!`, 'success');
-                    renderFiles();
-                }, 500);
-            }
-        }, index * 300);
-    });
+    setTimeout(() => {
+        uploadProgress.classList.add('hidden');
+        progressFill.style.width = '0%';
+        if (fileArray.length > 0) {
+            showNotification(`${fileArray.length} file(s) processed.`, 'info');
+        }
+    }, 500);
 
     fileInput.value = '';
 }
 
-function saveFile(file) {
-    const reader = new FileReader();
+async function saveFile(file) {
+    const fileId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    const storagePath = `${currentUser.id}/${fileId}_${file.name}`;
 
-    reader.onload = async function (e) {
+    // Show progress (start)
+    uploadProgress.classList.remove('hidden');
+    progressFill.style.width = '20%';
+    progressText.textContent = `Uploading ${file.name}...`;
+
+    try {
+        // 1. Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabaseClient
+            .storage
+            .from('files')
+            .upload(storagePath, file);
+
+        if (uploadError) throw uploadError;
+
+        progressFill.style.width = '60%';
+
+        // 2. Get Public URL
+        const { data: { publicUrl } } = supabaseClient
+            .storage
+            .from('files')
+            .getPublicUrl(storagePath);
+
         const fileData = {
-            id: Date.now() + Math.random(),
-            userId: currentUser.id,
+            id: fileId,
+            user_id: currentUser.id,
             name: file.name,
             size: formatFileSize(file.size),
             type: getFileType(file.type, file.name),
-            uploadedAt: new Date().toISOString(),
+            uploaded_at: new Date().toISOString(),
             thumbnail: getFileThumbnail(file.type),
-            data: e.target.result, // Store the actual file data as base64
-            mimeType: file.type
+            storage_path: storagePath,
+            mime_type: file.type
         };
 
-        try {
-            // Save to IndexedDB
-            await filesAppDB.add('files', fileData);
+        // 3. Save metadata to Firestore (files table)
+        const { error: dbError } = await supabaseClient
+            .from('files')
+            .insert([fileData]);
 
+        if (dbError) throw dbError;
+
+        progressFill.style.width = '100%';
+
+        setTimeout(() => {
+            uploadProgress.classList.add('hidden');
             showNotification('File uploaded successfully!', 'success');
-            renderFiles();
+            loadUserFiles(); // Refresh files
+        }, 500);
 
-            // Log activity
-            logActivity('upload', fileData.name, `Size: ${fileData.size}`);
-        } catch (e) {
-            console.error('Save file error:', e);
-            if (e.name === 'QuotaExceededError') {
-                showNotification('Storage limit reached! Large files may not be stored.', 'error');
-            } else {
-                showNotification('Error saving file data', 'error');
-            }
-        }
-    };
+        // Log activity
+        logActivity('upload', file.name, `Size: ${fileData.size}`);
 
-    reader.onerror = function () {
-        showNotification('Error reading file: ' + file.name, 'error');
-    };
-
-    // Read file as data URL (base64)
-    reader.readAsDataURL(file);
+    } catch (e) {
+        console.error('Save file error:', e);
+        uploadProgress.classList.add('hidden');
+        showNotification('Error saving file: ' + e.message, 'error');
+    }
 }
 
 
@@ -1085,46 +979,64 @@ function handleFilter(e) {
 }
 
 // File actions
-function downloadFile(fileId) {
+async function downloadFile(fileId) {
     const file = userFiles.find(f => f.id == fileId);
     if (!file) return;
 
-    if (!file.data) {
-        showNotification('File data not found (older files cannot be downloaded)', 'error');
-        return;
+    try {
+        const { data, error } = await supabaseClient
+            .storage
+            .from('files')
+            .download(file.storage_path);
+
+        if (error) throw error;
+
+        const blob = new Blob([data], { type: file.mime_type });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = file.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        showNotification('Download started', 'success');
+        logActivity('download', file.name, `User: ${currentUser.name}`);
+    } catch (e) {
+        console.error('Download error:', e);
+        showNotification('Failed to download file', 'error');
     }
-
-    const link = document.createElement('a');
-    link.href = file.data;
-    link.download = file.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    showNotification('Download started', 'success');
-
-    // Log activity
-    logActivity('download', file.name, `User: ${currentUser.name}`);
 }
 
 async function deleteFile(fileId) {
     if (confirm('Are you sure you want to delete this file?')) {
         try {
-            // Capture file name before deletion
             const fileToDelete = userFiles.find(f => f.id == fileId);
-            const fileName = fileToDelete ? fileToDelete.name : 'Unknown File';
+            if (!fileToDelete) return;
 
-            // Remove from IndexedDB
-            await filesAppDB.delete('files', fileId);
+            // 1. Delete from Supabase Storage
+            const { error: storageError } = await supabaseClient
+                .storage
+                .from('files')
+                .remove([fileToDelete.storage_path]);
 
-            // Remove from local state
-            userFiles = userFiles.filter(f => f.id != fileId);
+            if (storageError) throw storageError;
 
-            renderFiles();
+            // 2. Delete from Metadata DB
+            const { error: dbError } = await supabaseClient
+                .from('files')
+                .delete()
+                .eq('id', fileId);
+
+            if (dbError) throw dbError;
+
             showNotification('File deleted successfully', 'success');
+            loadUserFiles(); // Refresh
 
             // Log activity
-            logActivity('delete', fileName, 'Permanent removal');
+            logActivity('delete', fileToDelete.name, 'Permanent removal');
         } catch (e) {
             console.error('Error deleting file:', e);
             showNotification('Failed to delete file', 'error');
@@ -1157,4 +1069,100 @@ function showNotification(message, type = 'info') {
         notification.style.animation = 'slideInRight 0.3s ease reverse';
         setTimeout(() => notification.remove(), 300);
     }, 3000);
+}
+
+// Profile & Real-time Functions
+function openProfileModal() {
+    if (!currentUser) return;
+    profileNameInput.value = currentUser.name;
+    profileEmailInput.value = currentUser.email;
+    profileModal.classList.remove('hidden');
+}
+
+function closeProfileModal() {
+    profileModal.classList.add('hidden');
+}
+
+async function handleUpdateProfile(e) {
+    e.preventDefault();
+    const newName = profileNameInput.value.trim();
+    if (!newName || newName === currentUser.name) {
+        closeProfileModal();
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('profiles')
+            .update({ name: newName })
+            .eq('id', currentUser.id);
+
+        if (error) throw error;
+
+        currentUser.name = newName;
+        userName.textContent = newName;
+        updateUserAvatar();
+        closeProfileModal();
+        showNotification('Profile updated successfully', 'success');
+
+        // Log activity
+        logActivity('profile_update', 'Profile', `Changed name to ${newName}`);
+    } catch (error) {
+        console.error('Update profile error:', error);
+        showNotification('Failed to update profile', 'error');
+    }
+}
+
+function updateUserAvatar() {
+    if (currentUser && currentUser.name && userAvatarSmall) {
+        userAvatarSmall.textContent = currentUser.name.charAt(0).toUpperCase();
+    }
+}
+
+function setupRealtimeSubscriptions() {
+    if (!currentUser) return;
+
+    // Listen for file changes (uploads/deletions/updates)
+    supabaseClient
+        .channel('public:files')
+        .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'files'
+        }, (payload) => {
+            console.log('Real-time file change:', payload);
+            loadUserFiles(); // Refresh file list
+        })
+        .subscribe();
+
+    // Listen for activity changes
+    supabaseClient
+        .channel('public:activity')
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'activity',
+            filter: `user_id=eq.${currentUser.id}`
+        }, (payload) => {
+            console.log('Real-time activity:', payload);
+            if (activitySection && !activitySection.classList.contains('hidden')) {
+                renderActivityLog();
+            }
+        })
+        .subscribe();
+
+    // Listen for comment changes
+    supabaseClient
+        .channel('public:comments')
+        .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'comments'
+        }, (payload) => {
+            console.log('Real-time comment change:', payload);
+            if (currentFileId) {
+                loadComments(currentFileId);
+            }
+        })
+        .subscribe();
 }

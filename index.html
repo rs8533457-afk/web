@@ -220,7 +220,13 @@
                         </div>
                     </div>
                     <div class="header-right">
-                        <span class="user-name" id="userName">User</span>
+                        <div class="user-profile-trigger" id="profileTrigger"
+                            style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <div class="user-avatar-circle" id="userAvatarSmall"
+                                style="width: 32px; height: 32px; background: var(--gradient-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: white;">
+                                U</div>
+                            <span class="user-name" id="userName">User</span>
+                        </div>
                         <button class="btn-logout" id="logoutBtn">Logout</button>
                     </div>
                 </div>
@@ -412,23 +418,55 @@
                     </div>
                 </div>
             </div>
-        </div>
+            <!-- Profile Modal -->
+            <div class="modal hidden" id="profileModal">
+                <div class="modal-overlay" id="profileModalOverlay"></div>
+                <div class="modal-content" style="max-width: 400px;">
+                    <button class="modal-close" id="profileModalClose">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" />
+                        </svg>
+                    </button>
+                    <div class="profile-modal-header">
+                        <h3>Your Profile</h3>
+                        <p>Update your personal information</p>
+                    </div>
+                    <form id="profileForm" class="auth-form" style="margin-top: 20px;">
+                        <div class="form-group">
+                            <label for="profileName">Display Name</label>
+                            <input type="text" id="profileName" placeholder="Your Name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" id="profileEmail" disabled style="opacity: 0.6; cursor: not-allowed;">
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <span>Save Changes</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
 
-        <!-- EmailJS SDK -->
-        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+            <!-- EmailJS SDK -->
+            <script type="text/javascript"
+                src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
-        <!-- Theme Diagnostic -->
-        <script>
-            window.addEventListener('load', () => {
-                const video = document.getElementById('bgVideo');
-                if (video) {
-                    video.play().catch(error => {
-                        console.warn("Autoplay was prevented by the browser. Interaction might be needed.", error);
-                    });
-                }
-            });
-        </script>
-        <script src="script.js"></script>
+            <!-- Theme Diagnostic -->
+            <script>
+                window.addEventListener('load', () => {
+                    const video = document.getElementById('bgVideo');
+                    if (video) {
+                        video.play().catch(error => {
+                            console.warn("Autoplay was prevented by the browser. Interaction might be needed.", error);
+                        });
+                    }
+                });
+            </script>
+            <!-- Supabase SDK -->
+            <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+            <script src="script.js"></script>
 </body>
 
 </html>
