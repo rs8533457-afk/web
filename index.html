@@ -14,415 +14,402 @@
     <link rel="stylesheet" href="styles.css?v=1.3">
 </head>
 
-<body>
-    <video autoplay loop muted playsinline id="bgVideo">
-        <source src="vecteezy_animated-abstract-background-floating-bokeh-lights-bokeh_21047417.mp4" type="video/mp4">
-    </video>
-    <div class="stars"></div>
-    <div class="stars2"></div>
-    <div class="moon-container">
-        <div class="moon"></div>
-        <div class="moon-glow"></div>
-    </div>
+<video autoplay loop muted playsinline id="bgVideo">
+    <source src="vecteezy_animated-abstract-background-floating-bokeh-lights-bokeh_21047417.mp4" type="video/mp4">
+</video>
+<div class="stars"></div>
+<div class="stars2"></div>
 
-    <div class="bg-blobs">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
-        <div class="blob blob-4"></div>
-    </div>
-
-    <!-- Login Page -->
-    <div class="auth-page" id="loginPage">
-        <div class="auth-container">
-            <div class="auth-card glass">
-                <div class="auth-header">
-                    <div class="logo-large">
-                        <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect width="60" height="60" rx="16" fill="url(#gradient1)" />
-                            <path d="M30 15v30M15 30h30" stroke="white" stroke-width="3" stroke-linecap="round" />
-                            <circle cx="30" cy="30" r="12" stroke="white" stroke-width="2.5" fill="none" />
-                            <defs>
-                                <linearGradient id="gradient1" x1="0" y1="0" x2="60" y2="60">
-                                    <stop offset="0%" stop-color="#6366f1" />
-                                    <stop offset="100%" stop-color="#8b5cf6" />
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                    </div>
-                    <h1 class="auth-title">Welcome Back</h1>
-                    <p class="auth-subtitle">Sign in to access your files</p>
+<!-- Login Page -->
+<div class="auth-page" id="loginPage">
+    <div class="auth-container">
+        <div class="auth-card glass">
+            <div class="auth-header">
+                <div class="logo-large">
+                    <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="60" height="60" rx="16" fill="url(#gradient1)" />
+                        <path d="M30 15v30M15 30h30" stroke="white" stroke-width="3" stroke-linecap="round" />
+                        <circle cx="30" cy="30" r="12" stroke="white" stroke-width="2.5" fill="none" />
+                        <defs>
+                            <linearGradient id="gradient1" x1="0" y1="0" x2="60" y2="60">
+                                <stop offset="0%" stop-color="#6366f1" />
+                                <stop offset="100%" stop-color="#8b5cf6" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
                 </div>
-
-                <form class="auth-form" id="loginForm">
-                    <div class="form-group">
-                        <label for="loginEmail">Email Address</label>
-                        <input type="email" id="loginEmail" placeholder="you@example.com" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="loginPassword">Password</label>
-                        <div class="password-input-wrapper">
-                            <input type="password" id="loginPassword" placeholder="••••••••" required>
-                            <button type="button" class="password-toggle" onclick="togglePassword('loginPassword')">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg" class="eye-icon">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor"
-                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"
-                                        stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg" class="eye-off-icon hidden">
-                                    <path
-                                        d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07-2.33-2.33M1 1l22 22"
-                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-
-
-
-                    <button type="submit" class="btn-primary">
-                        <span>Sign In</span>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                    </button>
-                </form>
-
-                <div class="auth-footer">
-                    <p>Don't have an account? <a href="#" id="showSignup">Sign Up</a></p>
-                </div>
+                <h1 class="auth-title">Welcome Back</h1>
+                <p class="auth-subtitle">Sign in to access your files</p>
             </div>
-        </div>
-    </div>
 
-    <!-- Signup Page -->
-    <div class="auth-page hidden" id="signupPage">
-        <div class="auth-container">
-            <div class="auth-card glass">
-                <div class="auth-header">
-                    <div class="logo-large">
-                        <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect width="60" height="60" rx="16" fill="url(#gradient2)" />
-                            <path d="M30 15v30M15 30h30" stroke="white" stroke-width="3" stroke-linecap="round" />
-                            <circle cx="30" cy="30" r="12" stroke="white" stroke-width="2.5" fill="none" />
-                            <defs>
-                                <linearGradient id="gradient2" x1="0" y1="0" x2="60" y2="60">
-                                    <stop offset="0%" stop-color="#6366f1" />
-                                    <stop offset="100%" stop-color="#8b5cf6" />
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                    </div>
-                    <h1 class="auth-title">Create Account</h1>
-                    <p class="auth-subtitle">Start uploading and managing your files</p>
+            <form class="auth-form" id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Email Address</label>
+                    <input type="email" id="loginEmail" placeholder="you@example.com" required>
                 </div>
 
-                <form class="auth-form" id="signupForm">
-                    <div class="form-group">
-                        <label for="signupName">Full Name</label>
-                        <input type="text" id="signupName" placeholder="John Doe" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="signupEmail">Email Address</label>
-                        <input type="email" id="signupEmail" placeholder="you@example.com" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="signupPassword">Password</label>
-                        <input type="password" id="signupPassword" placeholder="••••••••" required minlength="6">
-                    </div>
-
-                    <button type="submit" class="btn-primary">
-                        <span>Create Account</span>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                    </button>
-                </form>
-
-                <div class="auth-footer">
-                    <p>Already have an account? <a href="#" id="showLogin">Sign In</a></p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- OTP Verification Page -->
-    <div class="auth-page hidden" id="otpPage">
-        <div class="auth-container">
-            <div class="auth-card glass">
-                <div class="auth-header">
-                    <div class="logo-large">
-                        <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect width="60" height="60" rx="16" fill="url(#gradient3_otp)" />
-                            <path d="M30 15v30M15 30h30" stroke="white" stroke-width="3" stroke-linecap="round" />
-                            <circle cx="30" cy="30" r="12" stroke="white" stroke-width="2.5" fill="none" />
-                            <defs>
-                                <linearGradient id="gradient3_otp" x1="0" y1="0" x2="60" y2="60">
-                                    <stop offset="0%" stop-color="#10b981" />
-                                    <stop offset="100%" stop-color="#06b6d4" />
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                    </div>
-                    <h1 class="auth-title">Verify Your Identity</h1>
-                    <p class="auth-subtitle" id="otpSubtitle">We've sent a 6-digit code to your email</p>
-                </div>
-
-                <div class="otp-container">
-                    <div class="otp-inputs">
-                        <input type="text" maxlength="1" class="otp-input" data-index="0">
-                        <input type="text" maxlength="1" class="otp-input" data-index="1">
-                        <input type="text" maxlength="1" class="otp-input" data-index="2">
-                        <input type="text" maxlength="1" class="otp-input" data-index="3">
-                        <input type="text" maxlength="1" class="otp-input" data-index="4">
-                        <input type="text" maxlength="1" class="otp-input" data-index="5">
-                    </div>
-                </div>
-
-                <button id="verifyOtpBtn" class="btn-primary" style="margin-top: 2rem;">
-                    <span>Verify & Continue</span>
-                </button>
-
-                <div class="auth-footer">
-                    <p>Didn't receive the code? <a href="#" id="resendOtp">Resend Code</a></p>
-                    <p style="margin-top: 10px;"><a href="#" onclick="showLogin(); return false;">Back to Login</a></p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Dashboard -->
-    <div class="dashboard hidden" id="dashboard">
-        <header class="header">
-            <div class="container">
-                <div class="header-content">
-                    <div class="logo">
-                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect width="40" height="40" rx="12" fill="url(#gradient3)" />
-                            <path d="M20 10v20M10 20h20" stroke="white" stroke-width="2.5" stroke-linecap="round" />
-                            <defs>
-                                <linearGradient id="gradient3" x1="0" y1="0" x2="40" y2="40">
-                                    <stop offset="0%" stop-color="#6366f1" />
-                                    <stop offset="100%" stop-color="#8b5cf6" />
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                        <span>FileVault</span>
-                    </div>
-                    <div class="header-center">
-                        <div class="search-bar">
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="loginPassword" placeholder="••••••••" required>
+                        <button type="button" class="password-toggle" onclick="togglePassword('loginPassword')">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"
+                                xmlns="http://www.w3.org/2000/svg" class="eye-icon">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"
                                     stroke-linecap="round" stroke-linejoin="round" />
-                                <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg" class="eye-off-icon hidden">
+                                <path
+                                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07-2.33-2.33M1 1l22 22"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                     stroke-linejoin="round" />
                             </svg>
-                            <input type="text" id="fileSearch" placeholder="Search your files...">
-                        </div>
-                    </div>
-                    <div class="header-right">
-                        <span class="user-name" id="userName">User</span>
-                        <button class="btn-logout" id="logoutBtn">Logout</button>
+                        </button>
                     </div>
                 </div>
-            </div>
-        </header>
 
-        <div class="dashboard-wrapper">
-            <aside class="sidebar">
-                <nav class="sidebar-nav">
-                    <a href="#" class="nav-item active" data-filter="all">
-                        <span class="nav-icon">📊</span>
-                        <span class="nav-text">Dashboard</span>
-                    </a>
-                    <a href="#" class="nav-item" data-filter="all">
-                        <span class="nav-icon">📂</span>
-                        <span class="nav-text">All Files</span>
-                    </a>
-                    <a href="#" class="nav-item" data-filter="video">
-                        <span class="nav-icon">🎬</span>
-                        <span class="nav-text">Videos</span>
-                    </a>
-                    <a href="#" class="nav-item" data-filter="image">
-                        <span class="nav-icon">🖼️</span>
-                        <span class="nav-text">Images</span>
-                    </a>
-                    <a href="#" class="nav-item" data-filter="document">
-                        <span class="nav-icon">📄</span>
-                        <span class="nav-text">Documents</span>
-                    </a>
-                </nav>
 
-                <div class="sidebar-footer">
-                    <div class="storage-info">
-                        <div class="storage-header">
-                            <span class="storage-title">Storage Usage</span>
-                            <span class="storage-percent" id="storagePercent">0%</span>
-                        </div>
-                        <div class="storage-bar">
-                            <div class="storage-fill" id="storageFill"></div>
-                        </div>
-                        <p class="storage-text" id="storageText">0 MB of 100 TB used</p>
-                    </div>
-                </div>
-            </aside>
 
-            <main class="main">
-                <section class="stats-section">
-                    <div class="container-fluid">
-                        <div class="stats-grid">
-                            <div class="stats-card glass">
-                                <div class="stats-icon" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">📁
-                                </div>
-                                <div class="stats-info">
-                                    <h3 id="totalFiles">0</h3>
-                                    <p>Total Files</p>
-                                </div>
-                            </div>
-                            <div class="stats-card glass">
-                                <div class="stats-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">📈
-                                </div>
-                                <div class="stats-info">
-                                    <h3 id="storageUsed">0 MB</h3>
-                                    <p>Storage Used</p>
-                                </div>
-                            </div>
-                            <div class="stats-card glass">
-                                <div class="stats-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">✨
-                                </div>
-                                <div class="stats-info">
-                                    <h3 id="recentFiles">0</h3>
-                                    <p>New Today</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="upload-section">
-                    <div class="container">
-                        <div class="upload-card glass">
-                            <div class="upload-area" id="uploadArea">
-                                <div class="upload-icon">
-                                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none"
-                                        xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"
-                                            stroke="url(#uploadGradient)" stroke-width="2" stroke-linecap="round"
-                                            stroke-linejoin="round" />
-                                        <defs>
-                                            <linearGradient id="uploadGradient" x1="12" y1="3" x2="12" y2="19">
-                                                <stop offset="0%" stop-color="#6366f1" />
-                                                <stop offset="100%" stop-color="#8b5cf6" />
-                                            </linearGradient>
-                                        </defs>
-                                    </svg>
-                                </div>
-                                <h3 class="upload-title">Drag & Drop Files Here</h3>
-                                <p class="upload-text">or click to browse</p>
-                                <p class="upload-supported">Supports: Videos, Documents, Images, Archives</p>
-                                <input type="file" id="fileInput" multiple hidden>
-                                <button class="btn-upload" id="browseBtn">Browse Files</button>
-                            </div>
-
-                            <div class="upload-progress hidden" id="uploadProgress">
-                                <div class="progress-bar">
-                                    <div class="progress-fill" id="progressFill"></div>
-                                </div>
-                                <p class="progress-text" id="progressText">Uploading...</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="files-section">
-                    <div class="container">
-                        <div class="section-header">
-                            <h2 class="section-title">My Files</h2>
-                            <div class="filter-buttons">
-                                <button class="filter-btn active" data-filter="all">All</button>
-                                <button class="filter-btn" data-filter="video">Videos</button>
-                                <button class="filter-btn" data-filter="document">Documents</button>
-                                <button class="filter-btn" data-filter="image">Images</button>
-                            </div>
-                        </div>
-                        <div class="files-grid" id="filesGrid">
-                            <!-- Files will be dynamically added here -->
-                        </div>
-                    </div>
-                </section>
-            </main>
-        </div>
-
-        <!-- File Viewer Modal (Generic for all files) -->
-        <div class="modal hidden" id="fileViewerModal">
-            <div class="modal-overlay" id="modalOverlay"></div>
-            <div class="modal-content">
-                <button class="modal-close" id="modalClose">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <button type="submit" class="btn-primary">
+                    <span>Sign In</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
                     </svg>
                 </button>
+            </form>
 
-                <div class="file-viewer-layout">
-                    <div class="preview-container" id="previewContainer">
-                        <!-- Dynamic content will be injected here -->
-                        <video id="videoPlayer" controls class="hidden"></video>
-                        <img id="imagePreview" src="" alt="Preview" class="hidden">
-                        <div id="iconPreview" class="hidden"></div>
+            <div class="auth-footer">
+                <p>Don't have an account? <a href="#" id="showSignup">Sign Up</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Signup Page -->
+<div class="auth-page hidden" id="signupPage">
+    <div class="auth-container">
+        <div class="auth-card glass">
+            <div class="auth-header">
+                <div class="logo-large">
+                    <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="60" height="60" rx="16" fill="url(#gradient2)" />
+                        <path d="M30 15v30M15 30h30" stroke="white" stroke-width="3" stroke-linecap="round" />
+                        <circle cx="30" cy="30" r="12" stroke="white" stroke-width="2.5" fill="none" />
+                        <defs>
+                            <linearGradient id="gradient2" x1="0" y1="0" x2="60" y2="60">
+                                <stop offset="0%" stop-color="#6366f1" />
+                                <stop offset="100%" stop-color="#8b5cf6" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <h1 class="auth-title">Create Account</h1>
+                <p class="auth-subtitle">Start uploading and managing your files</p>
+            </div>
+
+            <form class="auth-form" id="signupForm">
+                <div class="form-group">
+                    <label for="signupName">Full Name</label>
+                    <input type="text" id="signupName" placeholder="John Doe" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="signupEmail">Email Address</label>
+                    <input type="email" id="signupEmail" placeholder="you@example.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" placeholder="••••••••" required minlength="6">
+                </div>
+
+                <button type="submit" class="btn-primary">
+                    <span>Create Account</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Already have an account? <a href="#" id="showLogin">Sign In</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- OTP Verification Page -->
+<div class="auth-page hidden" id="otpPage">
+    <div class="auth-container">
+        <div class="auth-card glass">
+            <div class="auth-header">
+                <div class="logo-large">
+                    <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="60" height="60" rx="16" fill="url(#gradient3_otp)" />
+                        <path d="M30 15v30M15 30h30" stroke="white" stroke-width="3" stroke-linecap="round" />
+                        <circle cx="30" cy="30" r="12" stroke="white" stroke-width="2.5" fill="none" />
+                        <defs>
+                            <linearGradient id="gradient3_otp" x1="0" y1="0" x2="60" y2="60">
+                                <stop offset="0%" stop-color="#10b981" />
+                                <stop offset="100%" stop-color="#06b6d4" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <h1 class="auth-title">Verify Your Identity</h1>
+                <p class="auth-subtitle" id="otpSubtitle">We've sent a 6-digit code to your email</p>
+            </div>
+
+            <div class="otp-container">
+                <div class="otp-inputs">
+                    <input type="text" maxlength="1" class="otp-input" data-index="0">
+                    <input type="text" maxlength="1" class="otp-input" data-index="1">
+                    <input type="text" maxlength="1" class="otp-input" data-index="2">
+                    <input type="text" maxlength="1" class="otp-input" data-index="3">
+                    <input type="text" maxlength="1" class="otp-input" data-index="4">
+                    <input type="text" maxlength="1" class="otp-input" data-index="5">
+                </div>
+            </div>
+
+            <button id="verifyOtpBtn" class="btn-primary" style="margin-top: 2rem;">
+                <span>Verify & Continue</span>
+            </button>
+
+            <div class="auth-footer">
+                <p>Didn't receive the code? <a href="#" id="resendOtp">Resend Code</a></p>
+                <p style="margin-top: 10px;"><a href="#" onclick="showLogin(); return false;">Back to Login</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dashboard -->
+<div class="dashboard hidden" id="dashboard">
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="40" height="40" rx="12" fill="url(#gradient3)" />
+                        <path d="M20 10v20M10 20h20" stroke="white" stroke-width="2.5" stroke-linecap="round" />
+                        <defs>
+                            <linearGradient id="gradient3" x1="0" y1="0" x2="40" y2="40">
+                                <stop offset="0%" stop-color="#6366f1" />
+                                <stop offset="100%" stop-color="#8b5cf6" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <span>FileVault</span>
+                </div>
+                <div class="header-center">
+                    <div class="search-bar">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                        <input type="text" id="fileSearch" placeholder="Search your files...">
+                    </div>
+                </div>
+                <div class="header-right">
+                    <span class="user-name" id="userName">User</span>
+                    <button class="btn-logout" id="logoutBtn">Logout</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-wrapper">
+        <aside class="sidebar">
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-filter="all">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-filter="all">
+                    <span class="nav-icon">📂</span>
+                    <span class="nav-text">All Files</span>
+                </a>
+                <a href="#" class="nav-item" data-filter="video">
+                    <span class="nav-icon">🎬</span>
+                    <span class="nav-text">Videos</span>
+                </a>
+                <a href="#" class="nav-item" data-filter="image">
+                    <span class="nav-icon">🖼️</span>
+                    <span class="nav-text">Images</span>
+                </a>
+                <a href="#" class="nav-item" data-filter="document">
+                    <span class="nav-icon">📄</span>
+                    <span class="nav-text">Documents</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="storage-info">
+                    <div class="storage-header">
+                        <span class="storage-title">Storage Usage</span>
+                        <span class="storage-percent" id="storagePercent">0%</span>
+                    </div>
+                    <div class="storage-bar">
+                        <div class="storage-fill" id="storageFill"></div>
+                    </div>
+                    <p class="storage-text" id="storageText">0 MB of 100 TB used</p>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main">
+            <section class="stats-section">
+                <div class="container-fluid">
+                    <div class="stats-grid">
+                        <div class="stats-card glass">
+                            <div class="stats-icon" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">📁
+                            </div>
+                            <div class="stats-info">
+                                <h3 id="totalFiles">0</h3>
+                                <p>Total Files</p>
+                            </div>
+                        </div>
+                        <div class="stats-card glass">
+                            <div class="stats-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">📈
+                            </div>
+                            <div class="stats-info">
+                                <h3 id="storageUsed">0 MB</h3>
+                                <p>Storage Used</p>
+                            </div>
+                        </div>
+                        <div class="stats-card glass">
+                            <div class="stats-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">✨
+                            </div>
+                            <div class="stats-info">
+                                <h3 id="recentFiles">0</h3>
+                                <p>New Today</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="upload-section">
+                <div class="container">
+                    <div class="upload-card glass">
+                        <div class="upload-area" id="uploadArea">
+                            <div class="upload-icon">
+                                <svg width="80" height="80" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"
+                                        stroke="url(#uploadGradient)" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                    <defs>
+                                        <linearGradient id="uploadGradient" x1="12" y1="3" x2="12" y2="19">
+                                            <stop offset="0%" stop-color="#6366f1" />
+                                            <stop offset="100%" stop-color="#8b5cf6" />
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
+                            </div>
+                            <h3 class="upload-title">Drag & Drop Files Here</h3>
+                            <p class="upload-text">or click to browse</p>
+                            <p class="upload-supported">Supports: Videos, Documents, Images, Archives</p>
+                            <input type="file" id="fileInput" multiple hidden>
+                            <button class="btn-upload" id="browseBtn">Browse Files</button>
+                        </div>
+
+                        <div class="upload-progress hidden" id="uploadProgress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <p class="progress-text" id="progressText">Uploading...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="files-section">
+                <div class="container">
+                    <div class="section-header">
+                        <h2 class="section-title">My Files</h2>
+                        <div class="filter-buttons">
+                            <button class="filter-btn active" data-filter="all">All</button>
+                            <button class="filter-btn" data-filter="video">Videos</button>
+                            <button class="filter-btn" data-filter="document">Documents</button>
+                            <button class="filter-btn" data-filter="image">Images</button>
+                        </div>
+                    </div>
+                    <div class="files-grid" id="filesGrid">
+                        <!-- Files will be dynamically added here -->
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- File Viewer Modal (Generic for all files) -->
+    <div class="modal hidden" id="fileViewerModal">
+        <div class="modal-overlay" id="modalOverlay"></div>
+        <div class="modal-content">
+            <button class="modal-close" id="modalClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+            </button>
+
+            <div class="file-viewer-layout">
+                <div class="preview-container" id="previewContainer">
+                    <!-- Dynamic content will be injected here -->
+                    <video id="videoPlayer" controls class="hidden"></video>
+                    <img id="imagePreview" src="" alt="Preview" class="hidden">
+                    <div id="iconPreview" class="hidden"></div>
+                </div>
+
+                <div class="file-details-panel">
+                    <div class="file-header">
+                        <h3 id="modalFileName">File Name</h3>
+                        <p id="modalFileSize">Size: 0 MB</p>
                     </div>
 
-                    <div class="file-details-panel">
-                        <div class="file-header">
-                            <h3 id="modalFileName">File Name</h3>
-                            <p id="modalFileSize">Size: 0 MB</p>
+                    <div class="comments-section">
+                        <h4>Comments</h4>
+                        <div class="comments-list" id="commentsList">
+                            <!-- Comments injected here -->
                         </div>
-
-                        <div class="comments-section">
-                            <h4>Comments</h4>
-                            <div class="comments-list" id="commentsList">
-                                <!-- Comments injected here -->
-                            </div>
-                            <form class="comment-form" id="commentForm">
-                                <input type="text" id="commentInput" placeholder="Write a comment..." required>
-                                <button type="submit" class="btn-send">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                        xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor"
-                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                    </svg>
-                                </button>
-                            </form>
-                        </div>
+                        <form class="comment-form" id="commentForm">
+                            <input type="text" id="commentInput" placeholder="Write a comment..." required>
+                            <button type="submit" class="btn-send">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- EmailJS SDK -->
-        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
-        <!-- Theme Diagnostic -->
-        <script>
-            window.addEventListener('load', () => {
-                const video = document.getElementById('bgVideo');
-                if (video) {
-                    video.play().catch(error => {
-                        console.warn("Autoplay was prevented by the browser. Interaction might be needed.", error);
-                    });
-                }
-            });
-        </script>
-        <script src="script.js"></script>
-</body>
+    <!-- Theme Diagnostic -->
+    <script>
+        window.addEventListener('load', () => {
+            const video = document.getElementById('bgVideo');
+            if (video) {
+                video.play().catch(error => {
+                    console.warn("Autoplay was prevented by the browser. Interaction might be needed.", error);
+                });
+            }
+        });
+    </script>
+    <script src="script.js"></script>
+    </body>
 
 </html>
