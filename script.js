@@ -637,6 +637,12 @@ function showOTPPage() {
     signupPage.classList.add('hidden');
     otpPage.classList.remove('hidden');
     dashboard.classList.add('hidden');
+
+    // Update subtitle with email
+    if (pendingUser) {
+        document.getElementById('otpSubtitle').textContent = `We've sent a 6-digit code to ${pendingUser.email}`;
+    }
+
     // Focus first input
     setTimeout(() => otpInputs[0].focus(), 100);
 }
