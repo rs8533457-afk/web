@@ -905,7 +905,7 @@ function updateDashboardStats() {
     });
 
     const storageUsedMB = (totalBytes / (1024 * 1024)).toFixed(1);
-    const storageLimitMB = 5120; // 5GB limit
+    const storageLimitMB = 1048576; // 1TB limit (1024 * 1024 MB)
     const percentUsed = Math.min(100, (totalBytes / (storageLimitMB * 1024 * 1024) * 100)).toFixed(1);
 
     totalFilesEl.textContent = totalFiles;
@@ -918,7 +918,7 @@ function updateDashboardStats() {
         const usedDisplay = totalBytes > 1024 * 1024 * 1024
             ? (totalBytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
             : storageUsedMB + ' MB';
-        storageTextEl.textContent = `${usedDisplay} of 5 GB used`;
+        storageTextEl.textContent = `${usedDisplay} of 1 TB used`;
     }
 }
 
