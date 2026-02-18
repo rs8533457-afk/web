@@ -48,12 +48,12 @@
 
 html {
     scroll-behavior: smooth;
+    background: #000;
 }
 
 body {
     font-family: var(--font-primary);
-    background: #000;
-    /* Deepest layer */
+    background: transparent;
     color: var(--text-primary);
     line-height: 1.6;
     overflow-x: hidden;
