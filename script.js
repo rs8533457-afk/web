@@ -320,10 +320,14 @@ async function sendEmailOTP(user, otp) {
             reply_to: 'noreply@filevault.com'
         };
 
+        console.log('Template Params:', templateParams);
+        console.log('EmailJS Object:', typeof emailjs !== 'undefined' ? 'Loaded' : 'Missing');
+
         console.log('Attempting to send OTP via EmailJS...', {
             service: EMAILJS_CONFIG.SERVICE_ID,
             template: EMAILJS_CONFIG.TEMPLATE_ID,
-            email: user.email
+            userEmail: user.email,
+            publicKey: EMAILJS_CONFIG.PUBLIC_KEY.substring(0, 4) + '...'
         });
 
         const response = await emailjs.send(
