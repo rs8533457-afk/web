@@ -4,6 +4,20 @@ let userFiles = [];
 let currentOtp = null;
 let pendingUser = null; // Store user temporarily during OTP phase
 
+// EmailJS Configuration
+const EMAILJS_CONFIG = {
+    SERVICE_ID: 'service_6lse30k',
+    TEMPLATE_ID: 'template_iapqf56',
+    PUBLIC_KEY: 'V981gYEeDKVzfRA2'
+};
+
+// Initialize EmailJS
+(function () {
+    if (EMAILJS_CONFIG.PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') {
+        emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
+    }
+})();
+
 // DOM Elements
 const loginPage = document.getElementById('loginPage');
 const signupPage = document.getElementById('signupPage');
@@ -284,11 +298,38 @@ function startOtpVerification(user, isSignup = false) {
     pendingUser = user;
     currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Simulate sending OTP
-    console.log(`%c[OTP SYSTEM] Code for ${user.email}: ${currentOtp}`, 'color: #10b981; font-weight: bold; font-size: 14px;');
-    showNotification(`Simulated OTP: ${currentOtp}`, 'success');
+    // Send Real OTP (falls back to simulated if key is missing)
+    sendEmailOTP(user, currentOtp);
 
     showOTPPage();
+}
+
+async function sendEmailOTP(user, otp) {
+    if (EMAILJS_CONFIG.PUBLIC_KEY === 'YOUR_PUBLIC_KEY') {
+        console.warn('EmailJS Public Key is missing. Falling back to simulated OTP.');
+        showNotification(`Public Key Missing! Simulated OTP: ${otp}`, 'warning');
+        return;
+    }
+
+    try {
+        const templateParams = {
+            to_name: user.name,
+            to_email: user.email,
+            otp_code: otp,
+            reply_to: 'noreply@filevault.com'
+        };
+
+        await emailjs.send(
+            EMAILJS_CONFIG.SERVICE_ID,
+            EMAILJS_CONFIG.TEMPLATE_ID,
+            templateParams
+        );
+
+        showNotification('OTP sent to your email!', 'success');
+    } catch (error) {
+        console.error('EmailJS error:', error);
+        showNotification('Failed to send email. Check console for details.', 'error');
+    }
 }
 
 function handleOTPVerification() {
@@ -338,7 +379,7 @@ function handleResendOTP(e) {
 
     currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
     console.log(`%c[OTP SYSTEM] New Code for ${pendingUser.email}: ${currentOtp}`, 'color: #10b981; font-weight: bold; font-size: 14px;');
-    showNotification(`New OTP sent: ${currentOtp}`, 'success');
+    sendEmailOTP(pendingUser, currentOtp);
 
     // Clear and focus
     otpInputs.forEach(input => input.value = '');
